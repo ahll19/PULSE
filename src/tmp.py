@@ -8,7 +8,7 @@ import re
 class RunData:
     """
     Expected structure of a run (example):
-        data/1
+        data
     ├── golden.log
     ├── seu_2023-08-25_07-34-13.396916
     │   ├── diff.log
