@@ -13,5 +13,6 @@ class CRCEnum(Enum):
     state = 4
     final = 5
 
-    def __hash__(self) -> int:
-        return hash(self.value)
+
+class ExitValueEnum(Enum):
+    normal_exit = 40000000

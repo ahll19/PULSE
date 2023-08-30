@@ -23,7 +23,7 @@ class SoftError:
 @dataclass
 class HardError:
     cpu_stall: bool = None
-    program_crash: bool = None
+    bad_exit: bool = None
 
 
 class FaultDataModel:
@@ -31,5 +31,12 @@ class FaultDataModel:
     soft_error: SoftError = None
     hard_error: HardError = None
 
-    def __init__(self) -> None:
-        pass
+    def __init__(
+        self,
+        seu_description: SeuDescription,
+        soft_error: SoftError,
+        hard_error: HardError,
+    ) -> None:
+        self.seu_description = seu_description
+        self.soft_error = soft_error
+        self.hard_error = hard_error
