@@ -1,183 +1,142 @@
-from typing import Dict, List
 import os
-from .fault_model import SeuDescription, HardError, SoftError, FaultDataModel
-from .enums import CRCEnum, ExitValueEnum
+from typing import Dict, List, Tuple, Union
+from .enums import InfoEnum, InfoCastEnum
+import pandas as pd
+from numpy import nan as NaN
+import re
 
 
 class DataReader:
-    @classmethod
-    def get_golden_fault_model(cls, golden_log_path: str) -> FaultDataModel:
-        raise NotImplementedError("This is probably over engineered")
+    info_pattern_match_dict = {
+        # Should be the text before each information piece we need
+        InfoEnum.injection_clock_cycle: "Will flip bit at cycle: ",
+        InfoEnum.register: "Forcing value for ",
+        InfoEnum.bit_number: "Fliping bit number: ",
+        InfoEnum.value_change_before: "Before flip: ",
+        InfoEnum.value_change_after: "After flip: ",
+        InfoEnum.seedcrc: "seedcrc          : 0x",
+        InfoEnum.listcrc: "[0]crclist       : 0x",
+        InfoEnum.matrixcrc: "[0]crcmatrix     : 0x",
+        InfoEnum.statecrc: "[0]crcstate      : 0x",
+        InfoEnum.finalcrc: "[0]crcfinal      : 0x",
+        InfoEnum.coremark_freq: "CoreMark / MHz: ",
+    }
+
+    info_pattern_type_dict = {
+        InfoEnum.injection_clock_cycle: InfoCastEnum.int,
+        InfoEnum.register: InfoCastEnum.str,
+        InfoEnum.bit_number: InfoCastEnum.int,
+        InfoEnum.value_change_before: InfoCastEnum.hex_to_int,
+        InfoEnum.value_change_after: InfoCastEnum.hex_to_int,
+        InfoEnum.seedcrc: InfoCastEnum.hex_to_int,
+        InfoEnum.listcrc: InfoCastEnum.hex_to_int,
+        InfoEnum.matrixcrc: InfoCastEnum.hex_to_int,
+        InfoEnum.statecrc: InfoCastEnum.hex_to_int,
+        InfoEnum.finalcrc: InfoCastEnum.hex_to_int,
+        InfoEnum.coremark_freq: InfoCastEnum.M_to_int,
+    }
+
+    info_method_dict = {
+        InfoEnum.injection_clock_cycle: "_read_int",
+        InfoEnum.register: "_read_str",
+        InfoEnum.bit_number: "_read_int",
+        InfoEnum.value_change_before: "_read_hex_to_int",
+        InfoEnum.value_change_after: "_read_hex_to_int",
+        InfoEnum.seedcrc: "_read_hex_to_int",
+        InfoEnum.listcrc: "_read_hex_to_int",
+        InfoEnum.matrixcrc: "_read_hex_to_int",
+        InfoEnum.statecrc: "_read_hex_to_int",
+        InfoEnum.finalcrc: "_read_hex_to_int",
+        InfoEnum.coremark_freq: "_read_M_to_int",
+    }
 
     @classmethod
-    def get_seu_fault_models(cls, data_dir_path: str) -> Dict[str, FaultDataModel]:
+    def get_data(cls, data_dir_path: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
         run_paths = [
-            os.path.join(data_dir_path, path)
-            for path in os.listdir(data_dir_path)
-            if (not path.endswith(".log") and not path.endswith(".txt"))
+            os.path.join(data_dir_path, path) for path in os.listdir(data_dir_path)
         ]
+        golden_reg_instr_log_path = ""
+        golden_log_path = ""
 
-        fault_models = dict()
-
-        wrong_counter = 0
-        for i, run_path in enumerate(run_paths):
-            with open(os.path.join(run_path, "diff.log"), "r") as diff_file:
-                diff_lines = diff_file.readlines()
-
-            with open(os.path.join(run_path, "log.txt"), "r") as log_file:
-                log_lines = log_file.readlines()
-
-            try:
-                seu_description = cls._get_seu_description(log_lines)
-                soft_error = cls._get_soft_error(log_lines)
-                hard_error = cls._get_hard_errors(log_lines)
-            except:
-                wrong_counter += 1
+        for i, path in enumerate(run_paths):
+            if os.path.isdir(path):
                 continue
 
-            fault_data_model = FaultDataModel(
-                seu_description=seu_description,
-                soft_error=soft_error,
-                hard_error=hard_error,
+            if path.endswith(".log"):
+                golden_reg_instr_log_path = run_paths.pop(i)
+            elif path.endswith(".txt"):
+                golden_log_path = run_paths.pop(i)
+
+        seu_results = dict()
+        for path in run_paths:
+            seu_results[path.split("/")[-1]] = cls._read_log_file(
+                os.path.join(path, "log.txt")
             )
 
-            fault_models[run_path] = fault_data_model
+        golden_log_results = cls._read_log_file(golden_log_path)
 
-        print(f"Wrong counter: {wrong_counter}")
-        print(f"This is ~{wrong_counter / len(run_paths) * 100:.1f}% of the data")
-
-        return fault_models
+        return pd.DataFrame(seu_results).T, pd.Series(golden_log_results)
 
     @classmethod
-    def _get_hard_errors(cls, log_lines: List[str]) -> HardError:
-        exit_vals = [
-            int(exit_line.strip().split(" ")[-1])
-            for exit_line in [
-                line
-                for line in log_lines
-                if line.startswith("Program exited with value")
-                or line.startswith("Exit val")
-            ]
-        ]
+    def _read_log_file(cls, log_path: str) -> Dict[str, Union[str, int]]:
+        not_found_lines = list(cls.info_pattern_match_dict.keys())
+        _log_file_result = dict()
 
-        # Could be expanded with other exit values for more information, but for now we
-        # only care about the normal exit value. If it is not the only one we say we got
-        # a bad exit
-        good_exits_only = len(exit_vals) > 0
-        for exit_val in exit_vals:
-            if not good_exits_only:
-                break
+        with open(log_path, "r") as log_file:
+            log_lines = log_file.readlines()
 
-            good_exits_only &= exit_val == ExitValueEnum.normal_exit.value
+        for line in log_lines:
+            for info_enum in not_found_lines:
+                if cls.info_pattern_match_dict[info_enum] in line:
+                    not_found_lines.remove(info_enum)
 
-        # hard-coded for ease of use right now
-        cpu_stall = False
+                    method = getattr(cls, cls.info_method_dict[info_enum])
+                    try:
+                        value = method(line, cls.info_pattern_match_dict[info_enum])
+                        value = value if value is not None else NaN
+                    except Exception as e:
+                        value = NaN
+                        print(f"Error reading log file:")
+                        print(f"    method {method}")
+                        print(f"    line {line}")
+                        print(f"    pattern {cls.info_pattern_match_dict[info_enum]}")
+                        print(f"    enum {info_enum}")
+                        print(f"    exception {e}")
 
-        hard_error = HardError(cpu_stall=cpu_stall, bad_exit=not good_exits_only)
+                    _log_file_result[info_enum.name] = value
 
-        return hard_error
+        if len(not_found_lines) > 0:
+            # Here we should handle hard errors
+            _ = ""
 
-    @classmethod
-    def _get_soft_error(cls, log_lines: List[str]) -> SoftError:
-        # Consider instruction / reg log diff in future
-
-        # tmp fix, redo with smarter code
-        freq_value = int(
-            float(
-                [line for line in log_lines if line.startswith("CoreMark /")][0]
-                .strip()
-                .split(" ")[-1]
-            )
-            * 1e6
-        )
-
-        seedcrc = int(
-            [line for line in log_lines if line.startswith("seedcrc")][0]
-            .strip()
-            .split(" ")[-1],
-            16,  # hex
-        )
-
-        listcrc = int(
-            [line for line in log_lines if line.startswith("[0]crclist")][0]
-            .strip()
-            .split(" ")[-1],
-            16,  # Hex
-        )
-
-        matrixcrc = int(
-            [line for line in log_lines if line.startswith("[0]crcmatrix")][0]
-            .strip()
-            .split(" ")[-1],
-            16,  # Hex
-        )
-
-        statecrc = int(
-            [line for line in log_lines if line.startswith("[0]crcstate")][0]
-            .strip()
-            .split(" ")[-1],
-            16,  # Hex
-        )
-
-        finalcrc = int(
-            [line for line in log_lines if line.startswith("[0]crcfinal")][0]
-            .strip()
-            .split(" ")[-1],
-            16,  # Hex
-        )
-
-        crc_dict = {
-            CRCEnum.seed: seedcrc,
-            CRCEnum.list: listcrc,
-            CRCEnum.matrix: matrixcrc,
-            CRCEnum.state: statecrc,
-            CRCEnum.final: finalcrc,
-        }
-
-        soft_error = SoftError(coremark_freq=freq_value, crc_value=crc_dict)
-
-        return soft_error
+        return _log_file_result
 
     @classmethod
-    def _get_seu_description(cls, log_lines: List[str]) -> SeuDescription:
-        clock_cycle = int(
-            [line for line in log_lines if line.startswith("Will flip bit at cycle")][0]
-            .strip()
-            .split(" ")[-2]
-            .split(".")[0]  # sometimes decimal is present. Shouldnt be, temp fix
-        )
+    def _read_int(cls, line: str, rm_str: str) -> int:
+        stripped = line.replace(rm_str, "")
+        numbers_only = re.findall(r"\d+", stripped)
+        result = int(numbers_only[0])
 
-        reg_value = (
-            [line for line in log_lines if line.startswith("Forcing value for ")][0]
-            .strip()
-            .split(" ")[-1]
-        )
+        return result
 
-        bit_numer = int(
-            [line for line in log_lines if line.startswith("Fliping bit number")][0]
-            .strip()
-            .split(" ")[-1]
-        )
+    @classmethod
+    def _read_str(cls, line: str, rm_str: str) -> str:
+        result = line.replace(rm_str, "").strip("\n")
 
-        before_flip = int(
-            [line for line in log_lines if line.startswith("Before flip")][0]
-            .strip()
-            .split(" ")[-1],
-            16,  # hex
-        )
+        return result
 
-        after_flip = int(
-            [line for line in log_lines if line.startswith("After flip")][0]
-            .strip()
-            .split(" ")[-1],
-            16,  # hex
-        )
+    @classmethod
+    def _read_hex_to_int(cls, line: str, rm_str: str) -> int:
+        stripped = line.replace(rm_str, "")
+        hex_only = re.findall(r"[0-9a-fA-F]+", stripped)
+        result = int(hex_only[0], 16)
 
-        seu_desccr = SeuDescription(
-            bit_number=bit_numer,
-            value_change=(before_flip, after_flip),
-            clock_cycle=clock_cycle,
-            register=reg_value,
-        )
+        return result
 
-        return seu_desccr
+    @classmethod
+    def _read_M_to_int(cls, line: str, rm_str: str) -> int:
+        stripped = line.replace(rm_str, "")
+        decimal_only = re.findall(r"\.\d+", stripped)
+        result = int(float(decimal_only[0]) * 10e6)
+
+        return result
