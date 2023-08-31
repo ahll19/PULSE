@@ -1,5 +1,4 @@
 from src import DataReader
-from src import InfoEnum
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl

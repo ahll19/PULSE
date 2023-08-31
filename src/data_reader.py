@@ -1,6 +1,7 @@
+from .enums import SeuDescriptionEnum, SoftErrorIndicatorEnum, LogInfoCastEnum
+
 import os
 from typing import Dict, List, Tuple, Union
-from .enums import InfoEnum, InfoCastEnum
 import pandas as pd
 from numpy import nan as NaN
 import re
@@ -9,45 +10,45 @@ import re
 class DataReader:
     info_pattern_match_dict = {
         # Should be the text before each information piece we need
-        InfoEnum.injection_clock_cycle: "Will flip bit at cycle: ",
-        InfoEnum.register: "Forcing value for env.ibex_soc_wrap.ibex_soc_wrap.ibex_soc_i.",
-        InfoEnum.bit_number: "Fliping bit number: ",
-        InfoEnum.value_change_before: "Before flip: ",
-        InfoEnum.value_change_after: "After flip: ",
-        InfoEnum.seedcrc: "seedcrc          : 0x",
-        InfoEnum.listcrc: "[0]crclist       : 0x",
-        InfoEnum.matrixcrc: "[0]crcmatrix     : 0x",
-        InfoEnum.statecrc: "[0]crcstate      : 0x",
-        InfoEnum.finalcrc: "[0]crcfinal      : 0x",
-        InfoEnum.coremark_freq: "CoreMark / MHz: ",
+        SeuDescriptionEnum.injection_clock_cycle: "Will flip bit at cycle: ",
+        SeuDescriptionEnum.register: "Forcing value for env.ibex_soc_wrap.ibex_soc_wrap.ibex_soc_i.",
+        SeuDescriptionEnum.bit_number: "Fliping bit number: ",
+        SeuDescriptionEnum.value_change_before: "Before flip: ",
+        SeuDescriptionEnum.value_change_after: "After flip: ",
+        SoftErrorIndicatorEnum.seedcrc: "seedcrc          : 0x",
+        SoftErrorIndicatorEnum.listcrc: "[0]crclist       : 0x",
+        SoftErrorIndicatorEnum.matrixcrc: "[0]crcmatrix     : 0x",
+        SoftErrorIndicatorEnum.statecrc: "[0]crcstate      : 0x",
+        SoftErrorIndicatorEnum.finalcrc: "[0]crcfinal      : 0x",
+        SoftErrorIndicatorEnum.coremark_freq: "CoreMark / MHz: ",
     }
 
     info_pattern_type_dict = {
-        InfoEnum.injection_clock_cycle: InfoCastEnum.int,
-        InfoEnum.register: InfoCastEnum.str,
-        InfoEnum.bit_number: InfoCastEnum.int,
-        InfoEnum.value_change_before: InfoCastEnum.hex_to_int,
-        InfoEnum.value_change_after: InfoCastEnum.hex_to_int,
-        InfoEnum.seedcrc: InfoCastEnum.hex_to_int,
-        InfoEnum.listcrc: InfoCastEnum.hex_to_int,
-        InfoEnum.matrixcrc: InfoCastEnum.hex_to_int,
-        InfoEnum.statecrc: InfoCastEnum.hex_to_int,
-        InfoEnum.finalcrc: InfoCastEnum.hex_to_int,
-        InfoEnum.coremark_freq: InfoCastEnum.M_to_int,
+        SeuDescriptionEnum.injection_clock_cycle: LogInfoCastEnum.int,
+        SeuDescriptionEnum.register: LogInfoCastEnum.str,
+        SeuDescriptionEnum.bit_number: LogInfoCastEnum.int,
+        SeuDescriptionEnum.value_change_before: LogInfoCastEnum.hex_to_int,
+        SeuDescriptionEnum.value_change_after: LogInfoCastEnum.hex_to_int,
+        SoftErrorIndicatorEnum.seedcrc: LogInfoCastEnum.hex_to_int,
+        SoftErrorIndicatorEnum.listcrc: LogInfoCastEnum.hex_to_int,
+        SoftErrorIndicatorEnum.matrixcrc: LogInfoCastEnum.hex_to_int,
+        SoftErrorIndicatorEnum.statecrc: LogInfoCastEnum.hex_to_int,
+        SoftErrorIndicatorEnum.finalcrc: LogInfoCastEnum.hex_to_int,
+        SoftErrorIndicatorEnum.coremark_freq: LogInfoCastEnum.M_to_int,
     }
 
     info_method_dict = {
-        InfoEnum.injection_clock_cycle: "_read_int",
-        InfoEnum.register: "_read_str",
-        InfoEnum.bit_number: "_read_int",
-        InfoEnum.value_change_before: "_read_hex_to_int",
-        InfoEnum.value_change_after: "_read_hex_to_int",
-        InfoEnum.seedcrc: "_read_hex_to_int",
-        InfoEnum.listcrc: "_read_hex_to_int",
-        InfoEnum.matrixcrc: "_read_hex_to_int",
-        InfoEnum.statecrc: "_read_hex_to_int",
-        InfoEnum.finalcrc: "_read_hex_to_int",
-        InfoEnum.coremark_freq: "_read_M_to_int",
+        SeuDescriptionEnum.injection_clock_cycle: "_read_int",
+        SeuDescriptionEnum.register: "_read_str",
+        SeuDescriptionEnum.bit_number: "_read_int",
+        SeuDescriptionEnum.value_change_before: "_read_hex_to_int",
+        SeuDescriptionEnum.value_change_after: "_read_hex_to_int",
+        SoftErrorIndicatorEnum.seedcrc: "_read_hex_to_int",
+        SoftErrorIndicatorEnum.listcrc: "_read_hex_to_int",
+        SoftErrorIndicatorEnum.matrixcrc: "_read_hex_to_int",
+        SoftErrorIndicatorEnum.statecrc: "_read_hex_to_int",
+        SoftErrorIndicatorEnum.finalcrc: "_read_hex_to_int",
+        SoftErrorIndicatorEnum.coremark_freq: "_read_M_to_int",
     }
 
     @classmethod
