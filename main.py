@@ -1,13 +1,18 @@
-import os
 from src import DataReader
+from src import InfoEnum
+
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import pandas as pd
+import os
 
 
 def main():
     data_path = os.path.join(os.getcwd(), "data")
-    golden_path = os.path.join(data_path, "golden.txt")
-    seu_fault_models = DataReader.get_seu_fault_models(data_path)
-    golden_fault_model = DataReader.get_golden_fault_model(golden_path)
+    seu_data, golden_data = DataReader.get_data(data_path)
 
 
 if __name__ == "__main__":
+    mpl.use("TkAgg")
+
     main()
