@@ -10,7 +10,7 @@ class DataReader:
     info_pattern_match_dict = {
         # Should be the text before each information piece we need
         InfoEnum.injection_clock_cycle: "Will flip bit at cycle: ",
-        InfoEnum.register: "Forcing value for ",
+        InfoEnum.register: "Forcing value for env.ibex_soc_wrap.ibex_soc_wrap.ibex_soc_i.",
         InfoEnum.bit_number: "Fliping bit number: ",
         InfoEnum.value_change_before: "Before flip: ",
         InfoEnum.value_change_after: "After flip: ",
@@ -51,7 +51,7 @@ class DataReader:
     }
 
     @classmethod
-    def get_data(cls, data_dir_path: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def get_data(cls, data_dir_path: str) -> Tuple[pd.DataFrame, pd.Series]:
         run_paths = [
             os.path.join(data_dir_path, path) for path in os.listdir(data_dir_path)
         ]
@@ -95,19 +95,19 @@ class DataReader:
                         value = method(line, cls.info_pattern_match_dict[info_enum])
                         value = value if value is not None else NaN
                     except Exception as e:
+                        not_found_lines.append(info_enum)
                         value = NaN
                         print(f"Error reading log file:")
-                        print(f"    method {method}")
-                        print(f"    line {line}")
-                        print(f"    pattern {cls.info_pattern_match_dict[info_enum]}")
-                        print(f"    enum {info_enum}")
-                        print(f"    exception {e}")
+                        print(f"method:      {method}")
+                        print(f"line:        {line}")
+                        print(f"Info:        {info_enum}")
+                        print(f"Log path:    {log_path}")
+                        print(f"exception:   {e}")
 
                     _log_file_result[info_enum.name] = value
 
-        if len(not_found_lines) > 0:
-            # Here we should handle hard errors
-            _ = ""
+        # Not a good solution, should be changed
+        _log_file_result["hard error"] = len(not_found_lines) > 0
 
         return _log_file_result
 
@@ -121,13 +121,13 @@ class DataReader:
 
     @classmethod
     def _read_str(cls, line: str, rm_str: str) -> str:
-        result = line.replace(rm_str, "").strip("\n")
+        result = line.split(rm_str)[-1].strip("\n")
 
         return result
 
     @classmethod
     def _read_hex_to_int(cls, line: str, rm_str: str) -> int:
-        stripped = line.replace(rm_str, "")
+        stripped = line.replace(rm_str, "").strip("\n")
         hex_only = re.findall(r"[0-9a-fA-F]+", stripped)
         result = int(hex_only[0], 16)
 
