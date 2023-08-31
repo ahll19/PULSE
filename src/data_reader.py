@@ -37,20 +37,6 @@ class DataReader:
         SoftErrorIndicatorEnum.coremark_freq: LogInfoCastEnum.M_to_int,
     }
 
-    info_method_dict = {
-        SeuDescriptionEnum.injection_clock_cycle: "_read_int",
-        SeuDescriptionEnum.register: "_read_str",
-        SeuDescriptionEnum.bit_number: "_read_int",
-        SeuDescriptionEnum.value_change_before: "_read_hex_to_int",
-        SeuDescriptionEnum.value_change_after: "_read_hex_to_int",
-        SoftErrorIndicatorEnum.seedcrc: "_read_hex_to_int",
-        SoftErrorIndicatorEnum.listcrc: "_read_hex_to_int",
-        SoftErrorIndicatorEnum.matrixcrc: "_read_hex_to_int",
-        SoftErrorIndicatorEnum.statecrc: "_read_hex_to_int",
-        SoftErrorIndicatorEnum.finalcrc: "_read_hex_to_int",
-        SoftErrorIndicatorEnum.coremark_freq: "_read_M_to_int",
-    }
-
     @classmethod
     def get_data(cls, data_dir_path: str) -> Tuple[pd.DataFrame, pd.Series]:
         run_paths = [
@@ -91,7 +77,9 @@ class DataReader:
                 if cls.info_pattern_match_dict[info_enum] in line:
                     not_found_lines.remove(info_enum)
 
-                    method = getattr(cls, cls.info_method_dict[info_enum])
+                    method = getattr(
+                        cls, "_read_" + cls.info_pattern_type_dict[info_enum].name
+                    )
                     try:
                         value = method(line, cls.info_pattern_match_dict[info_enum])
                         value = value if value is not None else NaN
@@ -138,6 +126,10 @@ class DataReader:
     def _read_M_to_int(cls, line: str, rm_str: str) -> int:
         stripped = line.replace(rm_str, "")
         decimal_only = re.findall(r"\.\d+", stripped)
+
+        if len(decimal_only) == 0:
+            decimal_only = stripped[0]
+
         result = int(float(decimal_only[0]) * 10e6)
 
         return result
