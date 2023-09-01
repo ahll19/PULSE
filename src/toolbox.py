@@ -1,15 +1,19 @@
 import os
 from typing import List, Tuple
 from itertools import combinations
+import sys
 
 import pandas as pd
 import numpy as np
 from scipy.stats import kendalltau
 import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 
+sys.path.append("/tools/Ibex-Analysis/knncmi/knncmi")
+import knncmi
 from .colorprint import ColorPrinter
 from .data_reader import DataReader
-from .enums import SoftErrorIndicatorEnum
+from .enums import SoftErrorIndicatorEnum, SeuDescriptionEnum
 
 
 class ToolBox:
@@ -29,6 +33,96 @@ class ToolBox:
         self.__check_data_dir()
         self.__set_logs()
         self.__set_seu_num()
+
+    def register_error_rates(self, visualize: bool = False) -> pd.DataFrame:
+        soft_copy = self.seu_soft_num.copy()
+        hard_copy = self.seu_hard_num.copy()
+        reg_copy = self.seu_log.copy()[SeuDescriptionEnum.register.name]
+        error_frame = pd.concat([soft_copy, hard_copy, reg_copy], axis=1)
+
+        error_names = [enum.name for enum in SoftErrorIndicatorEnum] + ["hard error"]
+
+        # Only look at rows with errors
+        error_frame = error_frame[
+            (error_frame.T.drop(SeuDescriptionEnum.register.name) != 0).any()
+        ]
+
+        # Get number of reg hits before removing non error entries
+        reg_hit_count = reg_copy.value_counts()
+
+        # remove rows from reg_copy where error frame idx is not in reg_copy
+        reg_copy = reg_copy[reg_copy.index.isin(error_frame.index)]
+
+        # Add number of error occurrences by register
+        error_frame = error_frame.groupby(SeuDescriptionEnum.register.name).sum()
+
+        # Remove entries from reg_hit_count where the register is not in error_frame
+        reg_hit_count = reg_hit_count[reg_hit_count.index.isin(error_frame.index)]
+
+        # Divide rows of error_frame by reg_hit_count (by common index)
+        for register in reg_hit_count.index:
+            error_frame.loc[register] = (
+                error_frame.loc[register] / reg_hit_count.loc[register]
+            )
+
+        if not visualize:
+            return error_frame
+
+        fig, ax_rate = plt.subplots()
+
+        # Map registers to indices and the other way around
+        reg_idx_map = {register: i for i, register in enumerate(error_frame.index)}
+        idx_reg_map = {i: register for i, register in enumerate(error_frame.index)}
+
+        # Add reg_hit_count, from top down
+        ax_count = ax_rate.twinx()
+        reg_hit_count.plot.bar(ax=ax_count, logy=True, color="black", alpha=0.25)
+
+        # Labels
+        ax_rate.set_xlabel("Register")
+        ax_rate.set_ylabel("Error Rate (Colored Bars)")
+        ax_count.set_ylabel("Register Hits, (Gray Bars)")
+
+        # change yticks from science to decimal
+        ax_rate.yaxis.set_major_formatter(ScalarFormatter())
+        ax_count.yaxis.set_major_formatter(ScalarFormatter())
+
+        # change xticks to idx
+        error_frame.plot.bar(ax=ax_rate, logy=True)
+        tick_locs = ax_rate.xaxis.get_ticklocs().astype(int)
+        tick_names = [idx_reg_map[i] for i in tick_locs]
+        new_tick_values = [reg_idx_map[register] for register in tick_names]
+        ax_rate.xaxis.set_ticks(tick_locs)
+        ax_rate.xaxis.set_ticklabels(new_tick_values)
+
+        # add grids
+        ax_rate.grid(axis="y", which="major", ls="-", alpha=0.5)
+        ax_count.grid(axis="y", which="major", ls="--")
+
+        ColorPrinter.print_bold_okcyan("Registers are mapped on the plot as follows:")
+        for i, register in idx_reg_map.items():
+            ColorPrinter.print_okcyan(f"{i} -> {register}")
+
+    def knn_cmi_soft_error(self) -> None:
+        # TODO: This is a work in progress
+        return None
+        clock_cycle = SeuDescriptionEnum.injection_clock_cycle.name
+
+        seu_copy = self.seu_log.copy()
+        seu_soft_copy = self.seu_soft_num.copy()
+        seu_soft_copy[clock_cycle] = seu_copy[clock_cycle]
+        seu_soft_copy["register"] = seu_soft_copy.index
+        seu_soft_copy = seu_soft_copy.reset_index(drop=True)
+
+        for soft_error_enum in SoftErrorIndicatorEnum:
+            res = knncmi.cmi(
+                [SeuDescriptionEnum.register.name],
+                [soft_error_enum.name],
+                [],
+                3,
+                seu_soft_copy,
+            )
+            print(f"{soft_error_enum.name}: {res}")
 
     def kendall_soft_error_correlation(
         self, significant_level: float = 0.05, visualize: bool = False
@@ -72,7 +166,17 @@ class ToolBox:
         np_sig = np.array(significant_matrix)
         np_corr = np.array(correlation_matrix)
         np_sig_corr = np_corr.copy()
+        x, y = np_sig.shape
+        all_black = np.ones((x, y, 4))
+        for i in range(np_sig.shape[0]):
+            for j in range(np_sig.shape[1]):
+                if np_sig[i, j] and i != j:
+                    all_black[i, j] = np.array([1, 1, 1, 0])
+                else:
+                    all_black[i, j] = np.array([0, 0, 0, 255])
+
         np_sig_corr[np_sig == False] = 0
+
         np.fill_diagonal(np_sig_corr, 0)
         vmin, vmax = -1, 1
 
@@ -82,6 +186,7 @@ class ToolBox:
         cb_sig = ax_sig.imshow(
             np_sig_corr, cmap="bwr", interpolation="none", vmin=vmin, vmax=vmax
         )
+        ax_sig.imshow(all_black, interpolation="none")
 
         fig.colorbar(cb_all, ax=ax_all, shrink=0.8)
         fig.colorbar(cb_sig, ax=ax_sig, shrink=0.8)
