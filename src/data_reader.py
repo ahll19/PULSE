@@ -61,6 +61,7 @@ class DataReader:
             )
 
         golden_log_results = cls._read_log_file(golden_log_path)
+        golden_log_results.pop("hard error")
 
         return pd.DataFrame(seu_results).T, pd.Series(golden_log_results)
 
@@ -129,6 +130,9 @@ class DataReader:
 
         if len(decimal_only) == 0:
             decimal_only = stripped[0]
+
+            if decimal_only not in list("0123456789"):
+                return NaN
 
         result = int(float(decimal_only[0]) * 10e6)
 

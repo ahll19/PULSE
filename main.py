@@ -1,17 +1,18 @@
-from src import DataReader
+from src import DataReader, ToolBox
 
-import matplotlib.pyplot as plt
 import matplotlib as mpl
-import pandas as pd
+
 import os
 
 
 def main():
+    _ = ""
+
     data_path = os.path.join(os.getcwd(), "data")
-    seu_data, golden_data = DataReader.get_data(data_path)
+    toolbox = ToolBox(data_path)
+    toolbox.kendall_soft_error_correlation(visualize=True)
 
 
 if __name__ == "__main__":
     mpl.use("TkAgg")
-
     main()
