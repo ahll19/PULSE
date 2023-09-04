@@ -38,74 +38,47 @@ class ToolBox:
         self.__set_logs()
         self.__set_seu_num()
 
-    def register_error_rates(self, visualize: bool = False) -> pd.DataFrame:
+    def error_rate_summary(
+        self, significant_level: float = 0.05, visualize: bool = False
+    ) -> pd.DataFrame:
+        # TODO: Error rate as survival function dependent on injection time
+        _ = ""
         soft_copy = self.seu_soft_num.copy()
         hard_copy = self.seu_hard_num.copy()
+
+        # any errors occured series
+        soft_copy = soft_copy.any(axis=1).astype(int)
+        error_occured_series = (hard_copy + soft_copy).astype(bool).astype(int)
+
+        # get register series
         reg_copy = self.seu_log.copy()[SeuDescriptionEnum.register.name]
-        error_frame = pd.concat([soft_copy, hard_copy, reg_copy], axis=1)
 
-        error_names = [enum.name for enum in SoftErrorIndicatorEnum] + ["hard error"]
+        # combine regs and error series to dataframe
+        error_frame = pd.concat([reg_copy, error_occured_series], axis=1)
+        error_frame.columns = ["register", "error"]
 
-        # Only look at rows with errors
-        error_frame = error_frame[
-            (error_frame.T.drop(SeuDescriptionEnum.register.name) != 0).any()
-        ]
-
-        # Get number of reg hits before removing non error entries
+        # get the number of hits in each registry
         reg_hit_count = reg_copy.value_counts()
 
-        # remove rows from reg_copy where error frame idx is not in reg_copy
-        reg_copy = reg_copy[reg_copy.index.isin(error_frame.index)]
+        # get error count by register
+        error_frame = error_frame.groupby("register").sum()
 
-        # Add number of error occurrences by register
-        error_frame = error_frame.groupby(SeuDescriptionEnum.register.name).sum()
-
-        # Remove entries from reg_hit_count where the register is not in error_frame
-        reg_hit_count = reg_hit_count[reg_hit_count.index.isin(error_frame.index)]
-
-        # Divide rows of error_frame by reg_hit_count (by common index)
+        # get error rate
+        err_rate_dict = dict()
         for register in reg_hit_count.index:
-            error_frame.loc[register] = (
+            err_rate_dict[register] = (
                 error_frame.loc[register] / reg_hit_count.loc[register]
             )
+        error_reg_frame = pd.DataFrame(err_rate_dict).T
+        error_reg_frame.columns = ["error rate"]
 
-        if not visualize:
-            return error_frame
+        # insert error count by register into error_reg_frame
+        error_reg_frame.insert(0, "n hits", reg_hit_count)
 
-        fig, ax_rate = plt.subplots()
+        # sort
+        error_reg_frame = error_reg_frame.sort_values(by="error rate", ascending=False)
 
-        # Map registers to indices and the other way around
-        reg_idx_map = {register: i for i, register in enumerate(error_frame.index)}
-        idx_reg_map = {i: register for i, register in enumerate(error_frame.index)}
-
-        # Add reg_hit_count, from top down
-        ax_count = ax_rate.twinx()
-        reg_hit_count.plot.bar(ax=ax_count, logy=True, color="black", alpha=0.25)
-
-        # Labels
-        ax_rate.set_xlabel("Register")
-        ax_rate.set_ylabel("Error Rate (Colored Bars)")
-        ax_count.set_ylabel("Register Hits, (Gray Bars)")
-
-        # change yticks from science to decimal
-        ax_rate.yaxis.set_major_formatter(ScalarFormatter())
-        ax_count.yaxis.set_major_formatter(ScalarFormatter())
-
-        # change xticks to idx
-        error_frame.plot.bar(ax=ax_rate, logy=True)
-        tick_locs = ax_rate.xaxis.get_ticklocs().astype(int)
-        tick_names = [idx_reg_map[i] for i in tick_locs]
-        new_tick_values = [reg_idx_map[register] for register in tick_names]
-        ax_rate.xaxis.set_ticks(tick_locs)
-        ax_rate.xaxis.set_ticklabels(new_tick_values)
-
-        # add grids
-        ax_rate.grid(axis="y", which="major", ls="-", alpha=0.5)
-        ax_count.grid(axis="y", which="major", ls="--")
-
-        ColorPrinter.print_bold_okcyan("Registers are mapped on the plot as follows:")
-        for i, register in idx_reg_map.items():
-            ColorPrinter.print_okcyan(f"{i} -> {register}")
+        # TODO: Add bar plot on 2 axis.
 
     def kendall_soft_error_correlation(
         self, significant_level: float = 0.05, visualize: bool = False

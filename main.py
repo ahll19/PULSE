@@ -11,7 +11,7 @@ def main():
     data_path = os.path.join(os.getcwd(), "data")
     toolbox = ToolBox(data_path)
     toolbox.kendall_soft_error_correlation(visualize=False)
-    toolbox.register_error_rates(visualize=True)
+    toolbox.error_rate_summary(visualize=True)
 
 
 if __name__ == "__main__":
