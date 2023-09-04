@@ -90,18 +90,18 @@ setup_colors
 # =============================================================================
 if [[ "${remove}" -eq 1 ]]; then
   # Move all files from source directory to destination directory
-  mv "${source}/"* "${destination}"
+  for file in "${source}"/*; do
+    mv "${file}" "${destination}"
+  done
 else
   # Copy all files from source directory to destination directory
-  cp "${source}/"* "${destination}"
+  for file in "${source}"/*; do
+    cp "${file}" "${destination}"
+  done
 fi
 
 # Extract contents of all .tar.gz files in destination directory
 for file in "${destination}"/*.tar.gz; do
   tar -xzf "${file}" -C "${destination}"
-done
-
-# Remove .tar.gz files in the destination directory
-for file in "${destination}"/*.tar.gz; do
   rm "${file}"
 done
