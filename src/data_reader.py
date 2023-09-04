@@ -1,10 +1,13 @@
 from .enums import SeuDescriptionEnum, SoftErrorIndicatorEnum, LogInfoCastEnum
 
-import os
-from typing import Dict, List, Tuple, Union
 import pandas as pd
 from numpy import nan as NaN
+
+from time import time as current_time
+from typing import Dict, List, Tuple, Union
 import re
+import os
+import psutil
 
 
 class DataReader:
@@ -38,7 +41,9 @@ class DataReader:
     }
 
     @classmethod
-    def get_data(cls, data_dir_path: str) -> Tuple[pd.DataFrame, pd.Series]:
+    def get_data(
+        cls, data_dir_path: str, max_ram_usage: float, max_time: float
+    ) -> Tuple[pd.DataFrame, pd.Series]:
         run_paths = [
             os.path.join(data_dir_path, path) for path in os.listdir(data_dir_path)
         ]
@@ -55,10 +60,26 @@ class DataReader:
                 golden_log_path = run_paths.pop(i)
 
         seu_results = dict()
-        for path in run_paths:
-            seu_results[path.split("/")[-1]] = cls._read_log_file(
-                os.path.join(path, "log.txt")
-            )
+        loop_check_mod = 100
+        initial_ram_usage = psutil.virtual_memory().used / 10e9
+        initial_time = current_time()
+
+        for i, path in enumerate(run_paths):
+            if i % loop_check_mod == 0:
+                current_ram_usage = psutil.virtual_memory().used / 10e9
+                if current_ram_usage - initial_ram_usage > max_ram_usage:
+                    print(f"RAM usage exceeded {max_ram_usage} GB")
+                    break
+
+                curr_time = current_time()
+                if curr_time - initial_time > max_time:
+                    print(f"Time exceeded {max_time} seconds")
+                    break
+
+            res = cls._read_log_file(os.path.join(path, "log.txt"))
+            if res is None:
+                continue
+            seu_results[path.split("/")[-1]] = res
 
         golden_log_results = cls._read_log_file(golden_log_path)
         golden_log_results.pop("hard error")
@@ -66,12 +87,19 @@ class DataReader:
         return pd.DataFrame(seu_results).T, pd.Series(golden_log_results)
 
     @classmethod
-    def _read_log_file(cls, log_path: str) -> Dict[str, Union[str, int]]:
+    def _read_log_file(cls, log_path: str) -> Union[Dict[str, Union[str, int]], None]:
         not_found_lines = list(cls.info_pattern_match_dict.keys())
         _log_file_result = dict()
 
-        with open(log_path, "r") as log_file:
-            log_lines = log_file.readlines()
+        try:
+            with open(log_path, "r") as log_file:
+                log_lines = log_file.readlines()
+        except Exception as e:
+            print(f"Error reading log file:")
+            print(f"Log path:    {log_path}")
+            print(f"exception:   {e}")
+
+            return None
 
         for line in log_lines:
             for info_enum in not_found_lines:

@@ -16,6 +16,8 @@ from .enums import SoftErrorIndicatorEnum, SeuDescriptionEnum
 
 class ToolBox:
     data_dir_path: str = None
+    max_ram_usage: float = None
+    max_time: float = None
 
     golden_num: pd.Series = None
     # golden_instr: pd.DataFrame = None
@@ -25,8 +27,12 @@ class ToolBox:
 
     _valid_file_names: List[str] = ["golden.log", "golden.txt", "diff.log", "log.txt"]
 
-    def __init__(self, data_dir_path: str) -> None:
+    def __init__(
+        self, data_dir_path: str, max_ram_usage: float = 8.0, max_time: float = 180.0
+    ) -> None:
         self.data_dir_path = data_dir_path
+        self.max_ram_usage = max_ram_usage
+        self.max_time = max_time
 
         self.__check_data_dir()
         self.__set_logs()
@@ -202,7 +208,11 @@ class ToolBox:
 
     @ColorPrinter.print_func_time
     def __set_logs(self) -> None:
-        self.seu_log, self.golden_num = DataReader.get_data(self.data_dir_path)
+        self.seu_log, self.golden_num = DataReader.get_data(
+            self.data_dir_path,
+            self.max_ram_usage,
+            self.max_time,
+        )
 
     @ColorPrinter.print_func_time
     def __set_seu_num(self) -> None:

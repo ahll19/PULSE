@@ -11,7 +11,6 @@ def main():
     data_path = os.path.join(os.getcwd(), "data")
     toolbox = ToolBox(data_path)
     toolbox.kendall_soft_error_correlation(visualize=False)
-    toolbox.knn_cmi_soft_error()
     toolbox.register_error_rates(visualize=True)
 
 
