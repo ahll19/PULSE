@@ -9,8 +9,6 @@ from scipy.stats import kendalltau
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 
-sys.path.append("/tools/Ibex-Analysis/knncmi/knncmi")
-import knncmi
 from .colorprint import ColorPrinter
 from .data_reader import DataReader
 from .enums import SoftErrorIndicatorEnum, SeuDescriptionEnum
@@ -102,27 +100,6 @@ class ToolBox:
         ColorPrinter.print_bold_okcyan("Registers are mapped on the plot as follows:")
         for i, register in idx_reg_map.items():
             ColorPrinter.print_okcyan(f"{i} -> {register}")
-
-    def knn_cmi_soft_error(self) -> None:
-        # TODO: This is a work in progress
-        return None
-        clock_cycle = SeuDescriptionEnum.injection_clock_cycle.name
-
-        seu_copy = self.seu_log.copy()
-        seu_soft_copy = self.seu_soft_num.copy()
-        seu_soft_copy[clock_cycle] = seu_copy[clock_cycle]
-        seu_soft_copy["register"] = seu_soft_copy.index
-        seu_soft_copy = seu_soft_copy.reset_index(drop=True)
-
-        for soft_error_enum in SoftErrorIndicatorEnum:
-            res = knncmi.cmi(
-                [SeuDescriptionEnum.register.name],
-                [soft_error_enum.name],
-                [],
-                3,
-                seu_soft_copy,
-            )
-            print(f"{soft_error_enum.name}: {res}")
 
     def kendall_soft_error_correlation(
         self, significant_level: float = 0.05, visualize: bool = False
