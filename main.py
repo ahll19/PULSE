@@ -1,4 +1,4 @@
-from src import DataReader, ToolBox
+from src import ToolBox
 
 import matplotlib as mpl
 

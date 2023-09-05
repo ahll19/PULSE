@@ -19,8 +19,7 @@ class ToolBox:
     max_ram_usage: float = None
     max_time: float = None
 
-    golden_num: pd.Series = None
-    # golden_instr: pd.DataFrame = None
+    seu_log: pd.DataFrame = None
     seu_soft_num: pd.DataFrame = None
     seu_hard_num: pd.Series = None
     golden_num: pd.Series = None
@@ -38,10 +37,18 @@ class ToolBox:
         self.__set_logs()
         self.__set_seu_num()
 
-    def error_rate_summary(
-        self, significant_level: float = 0.05, visualize: bool = False
-    ) -> pd.DataFrame:
-        # TODO: Error rate as survival function dependent on injection time
+    def error_rate_summary(self, visualize: bool = False) -> pd.DataFrame:
+        """
+        Calculates the error rate for each register. The error rate is defined as the
+        number of times an error occured in a register divided by the number of times
+        the register was hit.
+
+        Args:
+            visualize (bool, optional): To plot or not to plot. Defaults to False.
+
+        Returns:
+            pd.DataFrame: A dataframe containing the error rate for each register.
+        """
         _ = ""
         soft_copy = self.seu_soft_num.copy()
         hard_copy = self.seu_hard_num.copy()
@@ -78,7 +85,49 @@ class ToolBox:
         # sort
         error_reg_frame = error_reg_frame.sort_values(by="error rate", ascending=False)
 
-        # TODO: Add bar plot on 2 axis.
+        if not visualize:
+            return error_reg_frame
+
+        # remove rows with no hits
+        plotting_err_reg_frame = error_reg_frame.copy()
+        plotting_err_reg_frame = plotting_err_reg_frame[
+            plotting_err_reg_frame["error rate"] != 0
+        ]
+
+        fig, rate_ax = plt.subplots()
+        count_ax = rate_ax.twinx()
+
+        rate_ax.set_ylabel("Error rate")
+        count_ax.set_ylabel("Number of hits")
+        rate_ax.set_xlabel("Register")
+        rate_ax.set_title("Error rate by register")
+
+        rate_ax.set_yscale("log")
+        count_ax.set_yscale("log")
+
+        rate_ax.bar(
+            list(range(len(plotting_err_reg_frame.index))),
+            plotting_err_reg_frame["error rate"],
+            color="tab:red",
+            alpha=0.5,
+        )
+        count_ax.bar(
+            list(range(len(plotting_err_reg_frame.index))),
+            plotting_err_reg_frame["n hits"],
+            color="tab:blue",
+            alpha=0.5,
+        )
+
+        rate_ax.tick_params(axis="y", labelcolor="tab:red")
+        count_ax.tick_params(axis="y", labelcolor="tab:blue")
+
+        rate_ax.grid()
+        count_ax.grid(axis="y", ls="--")
+
+        fig.tight_layout()
+        fig.show()
+
+        return error_reg_frame
 
     def kendall_soft_error_correlation(
         self, significant_level: float = 0.05, visualize: bool = False
