@@ -1,13 +1,12 @@
 import os
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 from itertools import combinations
-import sys
 
 import pandas as pd
 import numpy as np
-from scipy.stats import kendalltau
 import matplotlib.pyplot as plt
-from matplotlib.ticker import ScalarFormatter
+from scipy.stats import kendalltau
+from sklearn.neighbors import KernelDensity
 
 from .colorprint import ColorPrinter
 from .data_reader import DataReader
@@ -37,6 +36,168 @@ class ToolBox:
         self.__set_logs()
         self.__set_seu_num()
 
+    @ColorPrinter.print_func_time
+    def summary_statistics(self, visualize: bool = False) -> None:
+        _ = ""
+        if not visualize:
+            return
+
+        # ==============================================================================
+        # Getting broad distribution of error types
+        # ==============================================================================
+        err_catagory = pd.DataFrame(
+            index=self.seu_log.index.copy(),
+            data={
+                "soft": self.seu_soft_num.apply(lambda x: x.any(), axis=1),
+                "hard": self.seu_hard_num,
+            },
+        )
+        err_catagory["invisisble"] = err_catagory.apply(
+            lambda x: not (x["soft"] or x["hard"]), axis=1
+        )
+
+        err_catagory = err_catagory.astype(bool)
+        err_catagory["only soft"] = err_catagory["soft"] & ~err_catagory["hard"]
+        err_catagory["only hard"] = err_catagory["hard"] & ~err_catagory["soft"]
+        err_catagory["hard & soft"] = err_catagory["hard"] & err_catagory["soft"]
+        err_catagory.drop(["soft", "hard"], axis=1, inplace=True)
+        err_catagory = err_catagory.astype(int)
+
+        total = err_catagory.sum()
+        fig, ax = plt.subplots()
+        ax.set_title("Distribution of error types")
+        total.plot.bar(ax=ax, color="tab:blue", alpha=0.5, logy=True)
+        ax.set_ylabel("Number of runs")
+        ax.set_xlabel("Error type")
+        ax.set_xticklabels(total.index, rotation=45)
+        for i, v in enumerate(total):
+            ax.text(
+                i,
+                v,
+                str(v) + " (" + str(round(v / total.sum() * 100, 2)) + "%)",
+                color="tab:blue",
+                fontweight="bold",
+                ha="center",
+                va="bottom",
+            )
+
+        fig.tight_layout()
+        fig.show()
+        # ==============================================================================
+
+        # ==============================================================================
+        # Smoothed error rate by catgeory
+        # ==============================================================================
+        tw_smooth_percent = 10e-3
+        err_rate_category = err_catagory.copy()
+        clock_cycle_series = self.seu_log[SeuDescriptionEnum.injection_clock_cycle.name]
+        log_time_window = clock_cycle_series.max() - clock_cycle_series.min()
+        smooth_window_len = int(log_time_window * tw_smooth_percent)
+
+        for col in err_rate_category.columns:
+            err_rate_category[col] = (
+                err_rate_category[col]
+                .rolling(window=smooth_window_len, center=True, win_type="blackman")
+                .mean()
+            )
+        _plotting_frame = err_rate_category.copy()
+        _plotting_frame["cycle"] = clock_cycle_series.values
+        fig, err_ax = plt.subplots()
+        invis_ax = err_ax.twinx()
+
+        err_ax.set_title("Error rate by category")
+        err_ax.set_xlabel("Injection clock cycle")
+        err_ax.set_ylabel("Error rate")
+        invis_ax.set_ylabel("Error rate")
+
+        _plotting_frame.plot(
+            x="cycle",
+            y=["only soft", "only hard", "hard & soft"],
+            ax=err_ax,
+            color=["tab:blue", "tab:orange", "tab:green"],
+            alpha=0.5,
+        )
+        _plotting_frame.plot(
+            x="cycle",
+            y="invisisble",
+            ax=invis_ax,
+            color="k",
+            alpha=0.5,
+            ls="--",
+        )
+
+        fig.tight_layout()
+        fig.show()
+        # ==============================================================================
+
+    @ColorPrinter.print_func_time
+    def hard_error_times_by_reg(
+        self, visualize: bool = False, max_num_plots: int = 10
+    ) -> Dict["str", pd.DataFrame]:
+        # TODO: Extend to multicolor scatter plot by error types
+        """
+        Returns a dictionary containing the hard error times for each register.
+
+        Returns:
+            Dict["str", pd.DataFrame]: A dictionary containing the hard error times for
+            each register.
+        """
+        hard_error_with_time = self.seu_log.copy()[
+            [
+                "hard error",
+                SeuDescriptionEnum.injection_clock_cycle.name,
+                SeuDescriptionEnum.register.name,
+            ]
+        ]
+
+        hewt_dict_by_reg = dict()
+        for register in hard_error_with_time[SeuDescriptionEnum.register.name].unique():
+            if (
+                hard_error_with_time[
+                    hard_error_with_time[SeuDescriptionEnum.register.name] == register
+                ]["hard error"].sum()
+                == 0
+            ):
+                continue
+
+            tmp = hard_error_with_time[
+                hard_error_with_time[SeuDescriptionEnum.register.name] == register
+            ]
+            hewt_dict_by_reg[register] = tmp[
+                [
+                    "hard error",
+                    SeuDescriptionEnum.injection_clock_cycle.name,
+                ]
+            ].astype(int)
+
+        if not visualize:
+            return hewt_dict_by_reg
+
+        for i, (reg, table) in enumerate(hewt_dict_by_reg.items()):
+            if i >= max_num_plots:
+                break
+            fig, ax = plt.subplots()
+            ax.set_title(f"Reg: {reg}")
+            ax.set_xlabel("Injection clock cycle")
+            ax.set_ylabel("Error binary")
+
+            table.plot.scatter(
+                x=SeuDescriptionEnum.injection_clock_cycle.name,
+                y="hard error",
+                ax=ax,
+                marker="x",
+                s=10,
+                alpha=1,
+            )
+            ax.set_yticks([0, 1])
+            ax.set_yticklabels(["No error", "Error"])
+
+            fig.tight_layout()
+            fig.show()
+
+        return hewt_dict_by_reg
+
+    @ColorPrinter.print_func_time
     def error_rate_summary(self, visualize: bool = False) -> pd.DataFrame:
         """
         Calculates the error rate for each register. The error rate is defined as the
@@ -129,6 +290,7 @@ class ToolBox:
 
         return error_reg_frame
 
+    @ColorPrinter.print_func_time
     def kendall_soft_error_correlation(
         self, significant_level: float = 0.05, visualize: bool = False
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
