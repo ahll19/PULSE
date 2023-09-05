@@ -10,10 +10,11 @@ def main():
 
     data_path = os.path.join(os.getcwd(), "data")
     toolbox = ToolBox(data_path)
-    toolbox.kendall_soft_error_correlation(visualize=True)
-    toolbox.error_rate_summary(visualize=True)
-    toolbox.hard_error_times_by_reg(visualize=True)
-    toolbox.summary_statistics(visualize=True)
+    toolbox.kendall_soft_error_correlation(visualize=False)
+    toolbox.error_rate_summary(visualize=False)
+    toolbox.hard_error_times_by_reg(visualize=False)
+    toolbox.summary_statistics(visualize=False)
+    toolbox.uniformity_test(visualize=True)
 
     _ = ""
 

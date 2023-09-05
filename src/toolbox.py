@@ -37,8 +37,57 @@ class ToolBox:
         self.__set_seu_num()
 
     @ColorPrinter.print_func_time
+    def uniformity_test(self, visualize: bool = False) -> None:
+        """
+        Shows a histogram of the injection clock cycle for each run. This is a
+        visualization of the uniformity of the injection clock cycle.
+
+        Args:
+            visualize (bool, optional): Be true if u want plots. Defaults to False.
+        """
+        if not visualize:
+            return
+
+        err_binary_cycle = (
+            self.seu_soft_num.copy().apply(lambda row: row.any(), axis=1).astype(int)
+        ).rename("soft error")
+        err_binary_cycle = pd.concat(
+            [
+                err_binary_cycle,
+                self.seu_log[SeuDescriptionEnum.injection_clock_cycle.name],
+            ],
+            axis=1,
+        )
+        err_binary_cycle["error"] = err_binary_cycle["soft error"] | self.seu_hard_num
+        err_binary_cycle.drop("soft error", axis=1, inplace=True)
+
+        error_times = err_binary_cycle[err_binary_cycle["error"] == 1][
+            SeuDescriptionEnum.injection_clock_cycle.name
+        ].values
+
+        fig, ax = plt.subplots()
+        n_bins = 100
+
+        ax.hist(
+            error_times,
+            bins=n_bins,
+            histtype="step",
+            alpha=0.5,
+        )
+
+        ax.set_title("Binned Error Times")
+        ax.set_xlabel("Injection clock cycle")
+        ax.set_ylabel("Density")
+        fig.show()
+
+    @ColorPrinter.print_func_time
     def summary_statistics(self, visualize: bool = False) -> None:
-        _ = ""
+        """
+        Just some basic summary statistics for the data.
+
+        Args:
+            visualize (bool, optional): viz or no viz. Defaults to False.
+        """
         if not visualize:
             return
 
