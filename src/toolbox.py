@@ -2,6 +2,7 @@ import os
 from typing import Dict, List, Tuple
 from itertools import combinations
 
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,6 +19,8 @@ class ToolBox:
     max_ram_usage: float = None
     max_time: float = None
 
+    golden_instr: pd.DataFrame = None
+    instr_diff: pd.DataFrame = None
     seu_log: pd.DataFrame = None
     seu_soft_num: pd.DataFrame = None
     seu_hard_num: pd.Series = None
@@ -441,7 +444,12 @@ class ToolBox:
 
     @ColorPrinter.print_func_time
     def __set_logs(self) -> None:
-        self.seu_log, self.golden_num = DataReader.get_data(
+        (
+            self.seu_log,
+            self.golden_num,
+            self.golden_instr,
+            self.instr_diff,
+        ) = DataReader.get_data(
             self.data_dir_path,
             self.max_ram_usage,
             self.max_time,

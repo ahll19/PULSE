@@ -1,167 +1,222 @@
-from .enums import SeuDescriptionEnum, SoftErrorIndicatorEnum, LogInfoCastEnum
+from .data_reader_mappings import ReaderMapper
+from .enums import RunInfoEnum, GoldenRunInfoEnum
+
+from typing import Dict, List, Tuple, Union
+from time import time as current_time
+from psutil import virtual_memory
+import os
 
 import pandas as pd
-from numpy import nan as NaN
-
-from time import time as current_time
-from typing import Dict, List, Tuple, Union
-import re
-import os
-import psutil
 
 
 class DataReader:
-    info_pattern_match_dict = {
-        # Should be the text before each information piece we need
-        SeuDescriptionEnum.injection_clock_cycle: "Will flip bit at cycle: ",
-        SeuDescriptionEnum.register: "Forcing value for env.ibex_soc_wrap.ibex_soc_wrap.ibex_soc_i.",
-        SeuDescriptionEnum.bit_number: "Fliping bit number: ",
-        SeuDescriptionEnum.value_change_before: "Before flip: ",
-        SeuDescriptionEnum.value_change_after: "After flip: ",
-        SoftErrorIndicatorEnum.seedcrc: "seedcrc          : 0x",
-        SoftErrorIndicatorEnum.listcrc: "[0]crclist       : 0x",
-        SoftErrorIndicatorEnum.matrixcrc: "[0]crcmatrix     : 0x",
-        SoftErrorIndicatorEnum.statecrc: "[0]crcstate      : 0x",
-        SoftErrorIndicatorEnum.finalcrc: "[0]crcfinal      : 0x",
-        SoftErrorIndicatorEnum.coremark_freq: "CoreMark / MHz: ",
-    }
+    """
+    Though the naming doesn't quite make match, in the code we denote files a follows:
+        - a 'log' file as a file containing printed logs from a given simulation.
+        - a 'instr' file containing the instrs run during a simulation.
+    """
 
-    info_pattern_type_dict = {
-        SeuDescriptionEnum.injection_clock_cycle: LogInfoCastEnum.int,
-        SeuDescriptionEnum.register: LogInfoCastEnum.str,
-        SeuDescriptionEnum.bit_number: LogInfoCastEnum.int,
-        SeuDescriptionEnum.value_change_before: LogInfoCastEnum.hex_to_int,
-        SeuDescriptionEnum.value_change_after: LogInfoCastEnum.hex_to_int,
-        SoftErrorIndicatorEnum.seedcrc: LogInfoCastEnum.hex_to_int,
-        SoftErrorIndicatorEnum.listcrc: LogInfoCastEnum.hex_to_int,
-        SoftErrorIndicatorEnum.matrixcrc: LogInfoCastEnum.hex_to_int,
-        SoftErrorIndicatorEnum.statecrc: LogInfoCastEnum.hex_to_int,
-        SoftErrorIndicatorEnum.finalcrc: LogInfoCastEnum.hex_to_int,
-        SoftErrorIndicatorEnum.coremark_freq: LogInfoCastEnum.M_to_int,
-    }
+    # TODO: possible to add -1 to ram and timer to disable them
 
-    @classmethod
-    def get_data(
-        cls, data_dir_path: str, max_ram_usage: float, max_time: float
-    ) -> Tuple[pd.DataFrame, pd.Series]:
-        run_paths = [
-            os.path.join(data_dir_path, path) for path in os.listdir(data_dir_path)
+    # Information to be accessed by the user
+    seu_log_frame: pd.DataFrame = None
+    masking_series: pd.Series = None
+    golden_instr_log: pd.DataFrame = None
+    golden_log: pd.Series = None
+
+    # Used for reading the files. Should not be accessed directly by user
+    _mapper: ReaderMapper = ReaderMapper()
+    _golden_wanted_info = [num.name for num in GoldenRunInfoEnum]
+    _seu_wanted_info = [num.name for num in RunInfoEnum]
+
+    # User specified settings
+    data_dir_path: str = None
+    max_ram_usage: float = None
+    timeout_time: float = None
+    check_every: int = None
+    gold_instr_file_name: str = None
+    gold_log_file_name: str = None
+    seu_instr_file_name: str = None
+    seu_log_file_name: str = None
+
+    def __init__(
+        self,
+        data_directory_path: str,
+        max_ram_usage: float = 2,
+        timeout_time: float = 30,
+        check_every: int = 50,
+        gold_instr_file_name: str = "golden.log",
+        gold_log_file_name: str = "golden.txt",
+        seu_instr_file_name: str = "diff.log",
+        seu_log_file_name: str = "log.txt",
+    ) -> None:
+        self.data_dir_path = data_directory_path
+        self.max_ram_usage = max_ram_usage
+        self.timeout_time = timeout_time
+        self.check_every = check_every
+        self.gold_instr_file_name = gold_instr_file_name
+        self.gold_log_file_name = gold_log_file_name
+        self.seu_instr_file_name = seu_instr_file_name
+        self.seu_log_file_name = seu_log_file_name
+
+        self._check_path_and_directory(data_directory_path)
+
+        print("Loading data...")
+        t1 = current_time()
+        exeited_early = self.load_data()
+        t2 = current_time()
+        if exeited_early:
+            print("Data loading exited early due to settings limit.")
+
+        print(f"Data loaded in {t2 - t1:.2f} seconds.")
+
+    def load_data(self) -> bool:
+        """
+        Loads the data from the specified directory. Only call this if you need to
+        reload the data from the directory.
+
+        Returns:
+            bool: Returns True if the timeout or ram limit was hit, False otherwise.
+        """
+        run_dirs = [
+            dir
+            for dir in os.listdir(self.data_dir_path)
+            if not (dir in [self.gold_instr_file_name, self.gold_log_file_name])
+            and os.path.isdir(os.path.join(self.data_dir_path, dir))
         ]
-        golden_reg_instr_log_path = ""
-        golden_log_path = ""
+        seu_log_paths = [
+            os.path.join(self.data_dir_path, dir, self.seu_log_file_name)
+            for dir in run_dirs
+        ]
+        seu_instr_paths = [
+            os.path.join(self.data_dir_path, dir, self.seu_instr_file_name)
+            for dir in run_dirs
+        ]
+        golden_log_path = os.path.join(self.data_dir_path, self.gold_log_file_name)
+        golden_instr_path = os.path.join(self.data_dir_path, self.gold_instr_file_name)
 
-        for i, path in enumerate(run_paths):
-            if os.path.isdir(path):
-                continue
+        self.golden_log = self._read_golden_log_file(golden_log_path)
+        self.golden_instr_log = self._read_golden_instr_log_file(golden_instr_path)
 
-            if path.endswith(".log"):
-                golden_reg_instr_log_path = run_paths.pop(i)
-            elif path.endswith(".txt"):
-                golden_log_path = run_paths.pop(i)
+        seu_log_frame_dict = dict()
+        masking_dict = dict()
 
-        seu_results = dict()
-        loop_check_mod = 100
-        initial_ram_usage = psutil.virtual_memory().used / 10e9
-        initial_time = current_time()
+        hit_ram_limit = False
+        hit_time_limit = False
 
-        for i, path in enumerate(run_paths):
-            if i % loop_check_mod == 0:
-                current_ram_usage = psutil.virtual_memory().used / 10e9
-                if current_ram_usage - initial_ram_usage > max_ram_usage:
-                    print(f"RAM usage exceeded {max_ram_usage} GB")
+        initial_mem_usage = virtual_memory().used / 10e9
+        t0 = current_time()
+
+        for i, (run_name, log_path, instr_path) in enumerate(
+            zip(run_dirs, seu_log_paths, seu_instr_paths)
+        ):
+            got_all, new_log_row = self._read_seu_log_file(log_path)
+            if new_log_row is not None:
+                seu_log_frame_dict[run_name] = new_log_row
+                masking_dict[run_name] = got_all
+
+            if i % self.check_every == 0:
+                current_mem_usage = virtual_memory().used / 10e9
+                if current_mem_usage - initial_mem_usage > self.max_ram_usage:
+                    print(f"RAM usage exceeded {self.max_ram_usage} GB")
+                    hit_ram_limit = True
                     break
 
-                curr_time = current_time()
-                if curr_time - initial_time > max_time:
-                    print(f"Time exceeded {max_time} seconds")
+                t1 = current_time()
+                if t1 - t0 > self.timeout_time:
+                    print(f"Load time exceeded {self.timeout_time} seconds")
+                    hit_time_limit = True
                     break
 
-            res = cls._read_log_file(os.path.join(path, "log.txt"))
-            if res is None:
-                continue
-            seu_results[path.split("/")[-1]] = res
+        self.seu_log_frame = pd.DataFrame(seu_log_frame_dict).T
+        self.masking_series = pd.Series(masking_dict)
 
-        golden_log_results = cls._read_log_file(golden_log_path)
-        golden_log_results.pop("hard error")
+        return hit_ram_limit or hit_time_limit
 
-        return pd.DataFrame(seu_results).T, pd.Series(golden_log_results)
-
-    @classmethod
-    def _read_log_file(cls, log_path: str) -> Union[Dict[str, Union[str, int]], None]:
-        not_found_lines = list(cls.info_pattern_match_dict.keys())
-        _log_file_result = dict()
-
+    def _read_seu_log_file(
+        self, log_path: str
+    ) -> Tuple[bool, Dict[str, Union[str, int, float, None]]]:
         try:
-            with open(log_path, "r") as log_file:
-                log_lines = log_file.readlines()
+            with open(log_path, "r") as f:
+                log_lines = f.readlines()
         except Exception as e:
-            print(f"Error reading log file:")
-            print(f"Log path:    {log_path}")
-            print(f"exception:   {e}")
+            print(f"Could not read log file at {log_path}")
+            print(e)
+            return False, None
 
-            return None
+        unfound_info = self._seu_wanted_info.copy()
+        new_row = dict()
 
         for line in log_lines:
-            for info_enum in not_found_lines:
-                if cls.info_pattern_match_dict[info_enum] in line:
-                    not_found_lines.remove(info_enum)
-
-                    method = getattr(
-                        cls, "_read_" + cls.info_pattern_type_dict[info_enum].name
+            for info in unfound_info:
+                match_pattern = self._mapper.info_to_pattern_map[info]
+                if match_pattern in line:
+                    unfound_info.remove(info)
+                    new_row[info] = self._mapper.info_to_method_map[info](
+                        line, match_pattern
                     )
-                    try:
-                        value = method(line, cls.info_pattern_match_dict[info_enum])
-                        value = value if value is not None else NaN
-                    except Exception as e:
-                        not_found_lines.append(info_enum)
-                        value = NaN
-                        print(f"Error reading log file:")
-                        print(f"method:      {method}")
-                        print(f"line:        {line}")
-                        print(f"Info:        {info_enum}")
-                        print(f"Log path:    {log_path}")
-                        print(f"exception:   {e}")
+                    break
 
-                    _log_file_result[info_enum.name] = value
+        if len(unfound_info) > 0:
+            return False, new_row
+        else:
+            return True, new_row
 
-        # Not a good solution, should be changed
-        _log_file_result["hard error"] = len(not_found_lines) > 0
+    def _read_golden_log_file(self, log_path: str) -> pd.Series:
+        try:
+            with open(log_path, "r") as f:
+                log_lines = f.readlines()
+        except Exception as e:
+            print(f"Could not read log file at {log_path}")
+            print(e)
+            return None
 
-        return _log_file_result
+        unfound_info = self._golden_wanted_info.copy()
+        new_row = dict()
 
-    @classmethod
-    def _read_int(cls, line: str, rm_str: str) -> int:
-        stripped = line.replace(rm_str, "")
-        numbers_only = re.findall(r"\d+", stripped)
-        result = int(numbers_only[0])
+        for line in log_lines:
+            for info in unfound_info:
+                match_pattern = self._mapper.info_to_pattern_map[info]
+                if match_pattern in line:
+                    unfound_info.remove(info)
+                    new_row[info] = self._mapper.info_to_method_map[info](
+                        line, match_pattern
+                    )
+                    break
 
-        return result
+        if len(unfound_info) > 0:
+            print("Could not find the following info in the golden log file:")
+            print(unfound_info)
+            return None
+        else:
+            return pd.Series(new_row)
 
-    @classmethod
-    def _read_str(cls, line: str, rm_str: str) -> str:
-        result = line.split(rm_str)[-1].strip("\n")
+    def _read_golden_instr_log_file(self, log_path: str) -> pd.DataFrame:
+        # TODO: Fix instruction mapping format before continuing
+        return None
 
-        return result
+    def _read_seu_instr_log_file(self, log_path: str) -> None:
+        # TODO: Figure out the best format to save this in
+        return None
 
-    @classmethod
-    def _read_hex_to_int(cls, line: str, rm_str: str) -> int:
-        stripped = line.replace(rm_str, "").strip("\n")
-        hex_only = re.findall(r"[0-9a-fA-F]+", stripped)
-        result = int(hex_only[0], 16)
+    def _check_path_and_directory(self, path: str) -> None:
+        if not os.path.isdir(path):
+            raise ValueError(f"Path {path} is not a directory.")
 
-        return result
+        dir_and_files_in_path = os.listdir(path)
+        if not (self.gold_instr_file_name in dir_and_files_in_path):
+            raise ValueError(f"Path {path} does not contain a golden instr file.")
+        if not (self.gold_log_file_name in dir_and_files_in_path):
+            raise ValueError(f"Path {path} does not contain a golden log file.")
 
-    @classmethod
-    def _read_M_to_int(cls, line: str, rm_str: str) -> int:
-        stripped = line.replace(rm_str, "")
-        decimal_only = re.findall(r"\.\d+", stripped)
+    def get_golden_log(self) -> pd.Series:
+        return self.golden_log
 
-        if len(decimal_only) == 0:
-            decimal_only = stripped[0]
+    def get_seu_log_frame(self) -> pd.DataFrame:
+        return self.seu_log_frame
 
-            if decimal_only not in list("0123456789"):
-                return NaN
+    def get_masking_series(self) -> pd.Series:
+        return self.masking_series
 
-        result = int(float(decimal_only[0]) * 10e6)
-
-        return result
+    # def get_golden_instr_log(self) -> pd.DataFrame:
+    #     return self.golden_instr_log
