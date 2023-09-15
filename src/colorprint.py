@@ -14,62 +14,64 @@ class bcolors:
 
 class ColorPrinter:
     @staticmethod
-    def print_header(text: str) -> None:
-        print(f"{bcolors.HEADER}{text}{bcolors.ENDC}")
+    def print_header(text: str, end="\n") -> None:
+        print(f"{bcolors.HEADER}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_okblue(text: str) -> None:
-        print(f"{bcolors.OKBLUE}{text}{bcolors.ENDC}")
+    def print_okblue(text: str, end="\n") -> None:
+        print(f"{bcolors.OKBLUE}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_okcyan(text: str) -> None:
-        print(f"{bcolors.OKCYAN}{text}{bcolors.ENDC}")
+    def print_okcyan(text: str, end="\n") -> None:
+        print(f"{bcolors.OKCYAN}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_okgreen(text: str) -> None:
-        print(f"{bcolors.OKGREEN}{text}{bcolors.ENDC}")
+    def print_okgreen(text: str, end="\n") -> None:
+        print(f"{bcolors.OKGREEN}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_warning(text: str) -> None:
-        print(f"{bcolors.WARNING}{text}{bcolors.ENDC}")
+    def print_warning(text: str, end="\n") -> None:
+        print(f"{bcolors.WARNING}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_fail(text: str) -> None:
-        print(f"{bcolors.FAIL}{text}{bcolors.ENDC}")
+    def print_fail(text: str, end="\n") -> None:
+        print(f"{bcolors.FAIL}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_bold(text: str) -> None:
-        print(f"{bcolors.BOLD}{text}{bcolors.ENDC}")
+    def print_bold(text: str, end="\n") -> None:
+        print(f"{bcolors.BOLD}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_bold_okblue(text: str) -> None:
-        print(f"{bcolors.BOLD}{bcolors.OKBLUE}{text}{bcolors.ENDC}")
+    def print_bold_okblue(text: str, end="\n") -> None:
+        print(f"{bcolors.BOLD}{bcolors.OKBLUE}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_bold_okcyan(text: str) -> None:
-        print(f"{bcolors.BOLD}{bcolors.OKCYAN}{text}{bcolors.ENDC}")
+    def print_bold_okcyan(text: str, end="\n") -> None:
+        print(f"{bcolors.BOLD}{bcolors.OKCYAN}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_bold_okgreen(text: str) -> None:
-        print(f"{bcolors.BOLD}{bcolors.OKGREEN}{text}{bcolors.ENDC}")
+    def print_bold_okgreen(text: str, end="\n") -> None:
+        print(f"{bcolors.BOLD}{bcolors.OKGREEN}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_bold_warning(text: str) -> None:
-        print(f"{bcolors.BOLD}{bcolors.WARNING}{text}{bcolors.ENDC}")
+    def print_bold_warning(text: str, end="\n") -> None:
+        print(f"{bcolors.BOLD}{bcolors.WARNING}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
-    def print_bold_fail(text: str) -> None:
-        print(f"{bcolors.BOLD}{bcolors.FAIL}{text}{bcolors.ENDC}")
+    def print_bold_fail(text: str, end="\n") -> None:
+        print(f"{bcolors.BOLD}{bcolors.FAIL}{text}{bcolors.ENDC}", end=end)
 
     @staticmethod
     def print_func_time(func):
         def wrapper(*args, **kwargs):
-            ColorPrinter.print_okgreen(f"Running function {func.__name__}")
+            ColorPrinter.print_bold_okgreen(
+                f"Running function {func.__name__}. ", end=""
+            )
             start_time = get_curr_time()
             result = func(*args, **kwargs)
             end_time = get_curr_time()
             ColorPrinter.print_bold_okgreen(
-                f"Function {func.__name__} took {end_time - start_time:.2f} seconds"
+                f"Took: {end_time - start_time:.2f} seconds"
             )
             return result
 

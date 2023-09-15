@@ -1,3 +1,4 @@
+aenum==3.1.15
 anyio==4.0.0
 anytree==2.9.0
 argon2-cffi==23.1.0

@@ -1,45 +1,28 @@
-from src import DataReader, Analyses, Visualizer, ColorPrinter, RegisterTree
+from src import RegisterTree, Analyses
 
 import matplotlib as mpl
+import matplotlib.pyplot as plt
+from anytree.exporter import DotExporter
 
 import os
 
 
-def test_all_analyses(data_reader: DataReader, reg_tree: RegisterTree):
-    ColorPrinter.print_okcyan("Running all analyses on all nodes")
-    # get list of methods from Analyses class
-    analyses_methods = [
-        method
-        for method in dir(Analyses)
-        if callable(getattr(Analyses, method)) and not method.startswith("__")
-    ]
+def main():
+    reg_tree = RegisterTree(
+        data_directory=os.path.join(os.getcwd(), "data"), data_loading_timeout=120
+    )
 
-    for method in analyses_methods:
-        ColorPrinter.print_bold(f"Running {method}")
-        try:
-            reg_tree.run_analysis_on_all_nodes(
-                func=getattr(Analyses, method),
-            )
-        except Exception as e:
-            ColorPrinter.print_fail(f"Failed {method}")
-            ColorPrinter.print_fail(e)
+    rf_reg_name = "ibex_soc_wrap.ibex_soc_i.ibex_wrap.u_top.u_ibex_top.gen_regfile_ff.register_file_i"
+    node = reg_tree.get_node_by_path(rf_reg_name)
 
-            continue
+    result, fig = Analyses.error_rate_by_type_in_children(node, plot=True)
+    fig.show()
 
-        ColorPrinter.print_okgreen(f"Finished Analysis: {method}")
-
-
-def main(test_analyses: bool = True):
-    data_path = os.path.join(os.getcwd(), "data")
-    data_reader = DataReader(data_path, timeout_time=120)
-    reg_tree = RegisterTree(os.path.join(data_path, "reg_tree.txt"), data_reader)
-
-    if test_analyses:
-        test_all_analyses(data_reader, reg_tree)
-
-    Visualizer.error_rates_in_worst_nodes(reg_tree)
+    DotExporter(reg_tree.root).to_picture("tree.png")
+    _ = input("Keeping plot open. Press enter to stop script.")
 
 
 if __name__ == "__main__":
     mpl.use("TkAgg")
-    main(test_analyses=True)
+
+    main()
