@@ -52,7 +52,7 @@ class RegisterTree:
         self,
         data_directory: str,
         seu_log_name: str = "log.txt",
-        golden_log_name: str = "golden.txt",
+        golden_log_name: str = "golden_coremark_stdout.log",
         data_loading_timeout: int = 30,
     ) -> None:
         self._read_golden_file(data_directory, golden_log_name)
@@ -157,9 +157,10 @@ class RegisterTree:
 
     @ColorPrinter.print_func_time
     def _create_register_tree(self) -> None:
-        unique_regs = self.seu_log[SeuRunInfo.register.name][
-            self.masking_series
-        ].unique()
+        # unique_regs = self.seu_log[SeuRunInfo.register.name][
+        #     self.masking_series
+        # ].unique()
+        unique_regs = self.seu_log[SeuRunInfo.register.name].unique()
 
         _is_common_root = True
         _first_reg = unique_regs[0].split(".")[0]
