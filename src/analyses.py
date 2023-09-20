@@ -31,6 +31,20 @@ class Analyses:
     def binary_error_table_by_run_and_type(
         cls, node: Node, plot: bool = False
     ) -> pd.DataFrame:
+        """
+        Returns a pandas dataframe where each row is a run and each column is a type of
+        error. The values are 1 if the run has the error and 0 if it does not.
+
+        The columns which contain errors are those different to the intersection with
+        what is present in the golden run.
+
+        Args:
+            node (Node): tree-node to analyze
+            plot (bool, optional): Whether or not to plot the result. Defaults to False.
+
+        Returns:
+            pd.DataFrame:
+        """
         common_columns = node.seu_log.columns.intersection(node.golden_log.index)
         corruption_series = (
             (node.seu_log[common_columns] != node.golden_log).sum(axis=1).astype(bool)
@@ -56,6 +70,16 @@ class Analyses:
     def error_rate_by_type(
         cls, node: Node, plot: bool = False
     ) -> Union[pd.Series, Tuple[pd.Series, plt.Figure]]:
+        """
+        Rate of occurances based on binary_error_table_by_run_and_type
+
+        Args:
+            node (Node): tree-node to analyze
+            plot (bool, optional): Whether or not to plot the result. Defaults to False.
+
+        Returns:
+            Union[pd.Series, Tuple[pd.Series, plt.Figure]]:
+        """
         binary_error_table = cls.binary_error_table_by_run_and_type(node, plot=False)
         n = len(binary_error_table)
         result = binary_error_table.sum(axis=0) / n
@@ -90,6 +114,18 @@ class Analyses:
     def error_rate_by_type_in_children(
         cls, node: Node, plot: bool = False
     ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, plt.Figure]]:
+        """
+        Finds the total error rate in a given nodes children. A critical error in this
+        context should also be considered as a data corruption error. This is only shown
+        implicitly, as this allows for unfiromly stacked plots,
+
+        Args:
+            node (Node): tree-node to analyze
+            plot (bool, optional): whether or not to plot the result. Defaults to False.
+
+        Returns:
+            Union[pd.DataFrame, Tuple[pd.DataFrame, plt.Figure]]:
+        """
         results = {
             child.name: cls.error_rate_by_type(child, plot=False)
             for child in node.children
@@ -124,6 +160,19 @@ class Analyses:
     def error_rate_over_time(
         cls, node: Node, plot: bool = False
     ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, plt.Figure], None]:
+        """
+        Gives an estimation of error rates over time. Since each error is a binary
+        occurance, we estimate the error rate with means over concatenated windows.
+        The window-size is 1 if the number of samples is under 100, it's 10 if it's
+        under 1000, and otherwise it is 0.1% of the number of samples
+
+        Args:
+            node (Node): tree-node to analyze
+            plot (bool, optional): Whether or not to plot the result. Defaults to False.
+
+        Returns:
+            Union[pd.DataFrame, Tuple[pd.DataFrame, plt.Figure], None]:
+        """
         try:
             __test = SeuRunInfo.injection_cycle.name
         except AttributeError:
