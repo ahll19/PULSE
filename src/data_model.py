@@ -4,6 +4,7 @@ import pandas as pd
 
 from .firmwares import RunInfo, SeuRunInfo, InfoMapper
 from .colorprint import ColorPrinter
+from .configs import Config
 
 from typing import Dict, List, Tuple, Union
 from time import time as current_time
@@ -48,15 +49,19 @@ class RegisterTree:
     golden_log: pd.Series = None
     no_reg_runs: List[str] = list()
 
+    config: Config = None
+
     def __init__(
         self,
-        data_directory: str,
-        seu_log_name: str = "log.txt",
-        golden_log_name: str = "golden_coremark_stdout.log",
-        data_loading_timeout: int = 30,
+        config: Config,
     ) -> None:
-        self._read_golden_file(data_directory, golden_log_name)
-        self._read_viable_seu_logs(data_directory, seu_log_name, data_loading_timeout)
+        if not config.config_is_set:
+            raise ValueError("Config is not set. Run Config.set_config() first.")
+
+        self.config = config
+
+        self._read_golden_file()
+        self._read_viable_seu_logs()
         self._create_register_tree()
 
     def get_node_by_path(self, path: str) -> Union[Node, None]:
@@ -84,13 +89,14 @@ class RegisterTree:
         return [node for node in PreOrderIter(self.root) if node.depth == level]
 
     # TODO: Figure out how much logic in these methods can be moved outside of the class
-    def _read_golden_file(self, data_directory: str, golden_log_name: str) -> None:
-        path = os.path.join(data_directory, golden_log_name)
+    def _read_golden_file(self) -> None:
+        path = os.path.join(self.config.DATA_DIRECTORY, self.config.GOLDEN)
         try:
             with open(path, "r") as f:
                 log_lines = f.readlines()
         except Exception as e:
-            return None
+            err_string = f"Could not read golden log file at {path}"
+            raise FileNotFoundError(err_string)
 
         unfound_info = [info.name for info in RunInfo]
         golden_dict = dict()
@@ -114,12 +120,10 @@ class RegisterTree:
         self.golden_log = pd.Series(golden_dict)
 
     @ColorPrinter.print_func_time
-    def _read_viable_seu_logs(
-        self, data_directory: str, seu_log_name: str, data_loading_timout: int
-    ) -> pd.DataFrame:
-        viable_run_paths = self.__get_viable_runs(data_directory, seu_log_name)
+    def _read_viable_seu_logs(self) -> pd.DataFrame:
+        viable_run_paths = self.__get_viable_runs()
         viable_run_paths = [
-            os.path.join(path, seu_log_name) for path in viable_run_paths
+            os.path.join(path, self.config.SEU) for path in viable_run_paths
         ]
 
         mask = dict()
@@ -143,11 +147,12 @@ class RegisterTree:
             mask[run_name] = parsable
             seu_log_frame[run_name] = new_row
 
-            if i % check_every != 0:
+            if i % check_every != 0 or self.config.TIMEOUT == -1:
                 continue
-            if current_time() - start_time > data_loading_timout:
+
+            if current_time() - start_time > self.config.TIMEOUT:
                 print(
-                    f"\nData loading timeout of {data_loading_timout} seconds reached. "
+                    f"\nData loading timeout of {self.config.TIMEOUT} seconds reached. "
                     f"Stopping data loading.\n"
                 )
                 break
@@ -204,16 +209,16 @@ class RegisterTree:
                         child for child in current_node.children if child.name == part
                     ][0]
 
-    def __get_viable_runs(self, data_directory: str, seu_log_name: str) -> List[str]:
-        directories_in_data_dir = os.listdir(data_directory)
+    def __get_viable_runs(self) -> List[str]:
+        directories_in_data_dir = os.listdir(self.config.DATA_DIRECTORY)
         directories_in_data_dir = [
-            os.path.join(data_directory, dir)
+            os.path.join(self.config.DATA_DIRECTORY, dir)
             for dir in directories_in_data_dir
-            if os.path.isdir(os.path.join(data_directory, dir))
+            if os.path.isdir(os.path.join(self.config.DATA_DIRECTORY, dir))
         ]
 
         dirs_containing_seu_log = [
-            dir for dir in directories_in_data_dir if seu_log_name in os.listdir(dir)
+            dir for dir in directories_in_data_dir if self.config.SEU in os.listdir(dir)
         ]
 
         return dirs_containing_seu_log

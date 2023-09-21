@@ -1,4 +1,4 @@
-from src import RegisterTree, Analyses
+from src import RegisterTree, Analyses, Config
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -8,18 +8,17 @@ import os
 
 
 def main():
-    reg_tree = RegisterTree(
-        data_directory=os.path.join(os.getcwd(), "data"), data_loading_timeout=120
-    )
+    config = Config("coremark")
+    reg_tree = RegisterTree(config)
 
     rf_reg_name = "ibex_soc_wrap.ibex_soc_i.ibex_wrap.u_top.u_ibex_top.gen_regfile_ff.register_file_i"
     node = reg_tree.get_node_by_path(rf_reg_name)
 
-    result, fig = Analyses.error_rate_by_type_in_children(node, plot=True)
-    fig.show()
-
-    DotExporter(reg_tree.root).to_picture("tree.png")
-    _ = input("Keeping plot open. Press enter to stop script.")
+    Analyses.binary_error_table_by_run_and_type(node, plot=True)
+    Analyses.error_rate_by_type(node, plot=True)
+    Analyses.error_rate_by_type_in_children(node, plot=True)
+    Analyses.error_rate_over_time(node, plot=True)
+    Analyses.test_coverage(node, plot=True)
 
 
 if __name__ == "__main__":

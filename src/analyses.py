@@ -194,12 +194,10 @@ class Analyses:
 
         # Moving average window
         n = len(injection_cycle_series)
-        if n < 10e1:
+        if n < 10e2:
             w_size = 1
-        elif n < 10e2:
-            w_size = 10
         else:
-            w_size = int(n * 10e-2)
+            w_size = 100
 
         # Calculate moving average
         corruption_series = corruption_series.rolling(w_size).mean()
@@ -258,3 +256,14 @@ class Analyses:
         fig.suptitle(f"Error rate over time on node {node.name}")
 
         return result, fig
+
+    @classmethod
+    def test_coverage(
+        cls,
+        node: Node,
+        plot: bool = False,
+        start_cycle: int = None,
+        end_cycle: int = None,
+    ) -> Union[Tuple[pd.DataFrame, float], Tuple[pd.DataFrame, float, plt.Figure]]:
+        _ = ""
+        ns = 4799200  # TODO: Get from UVM more directly. Currently gotten from golden
