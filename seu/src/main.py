@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-if __name__ == "__main__":
+def test1():
     x_max = 10
     y_max = 10
     n_intensity_samples = 100
@@ -34,3 +34,26 @@ if __name__ == "__main__":
     plt.scatter(points[:, 0], points[:, 1])
     plt.title(f"Simulation, N={points.shape[0]}")
     plt.show()
+
+
+def test2():
+    data_dir = "../hadrons_gt_20_mev_data.txt"
+
+    with open(data_dir, "r") as f:
+        data = f.readlines()
+
+    data = [d for d in data if not d.startswith("#")]
+    data = [d.split() for d in data]
+    data = np.array(data, dtype=float)
+
+    plt.plot(data[0, :], label="R=20-30")
+    plt.plot(data[1, :], label="R=30-40")
+    plt.plot(data[2, :], label="R=40-50")
+    plt.plot(data[3, :], label="R=50-60")
+
+    plt.legend()
+    plt.show()
+
+
+if __name__ == "__main__":
+    test2()
