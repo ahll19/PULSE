@@ -15,6 +15,7 @@ class Config:
             "TIMEOUT",
             "MAX_RAM_USAGE",
             "MAX_NUMBER_OF_LOGS",
+            "VPI_TXT_PATH",
         ],
         "FIRMWARE": [
             "PATH",
@@ -33,6 +34,7 @@ class Config:
     TIMEOUT: int = None
     MAX_RAM_USAGE: float = None
     MAX_NUMBER_OF_LOGS: int = None
+    VPI_TXT_PATH: str = None
 
     # FIRMWARE
     PATH: str = None

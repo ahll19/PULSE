@@ -1,4 +1,4 @@
-from src import RegisterTree, Analyses, Config
+from src import RegisterTree, Analyses, Config, DataStructure
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -7,7 +7,7 @@ from anytree.exporter import DotExporter
 import os
 
 
-def main():
+def main1():
     config = Config("coremark")
     reg_tree = RegisterTree(config)
 
@@ -21,7 +21,12 @@ def main():
     Analyses.test_coverage(node, plot=True)
 
 
+def main2():
+    config = Config("coremark")
+    data_structure = DataStructure(config)
+
+
 if __name__ == "__main__":
     mpl.use("TkAgg")
 
-    main()
+    main2()

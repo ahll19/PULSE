@@ -11,7 +11,7 @@ def test1():
     region = Region(np.array([[0, x_max], [0, y_max]]))
 
     intensity = lambda x, args: 2 + np.sin(x[0]) + np.cos(x[1])
-    intensity = lambda x, args: 3 + x[0] ** 2 + x[1] ** 1.5
+    # intensity = lambda x, args: 3 + x[0] ** 2 + x[1] ** 1.5
 
     intensity_sample = np.array(
         [
@@ -27,7 +27,7 @@ def test1():
     )
 
     process = InhomogeneousPoisson(region, intensity, intensity_maximum_estimate=1)
-    points, n_sim, n_disc = process.simulate_process(n_points=1000)
+    points, n_sim, n_disc = process.simulate_process(n_points=100)
 
     cb = plt.imshow(intensity_sample, extent=[0, 10, 0, 10], cmap="hot", origin="lower")
     plt.colorbar(cb)
@@ -56,4 +56,4 @@ def test2():
 
 
 if __name__ == "__main__":
-    test2()
+    test1()
