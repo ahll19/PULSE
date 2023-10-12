@@ -30,6 +30,10 @@ class SeuRunInfo(StrEnum):
     value_before = "Before flip: "
     value_after = "After flip: "
 
+    # Ibex alert signals extracted in simulator through VPI
+    alert_minor = "alert_minor_o: "
+    alert_major_bus = "alert_major_bus_o: "
+    alert_major_internal = "alert_major_internal_o: "
 
 class InfoMapper:
     info_to_method_map = {
@@ -44,6 +48,9 @@ class InfoMapper:
         SeuRunInfo.bit_number.name: MappingMethods.read_int,
         SeuRunInfo.value_before.name: MappingMethods.read_hex_to_int,
         SeuRunInfo.value_after.name: MappingMethods.read_hex_to_int,
+        SeuRunInfo.alert_minor.name : MappingMethods.read_int,
+        SeuRunInfo.alert_major_bus.name : MappingMethods.read_int,
+        SeuRunInfo.alert_major_internal.name : MappingMethods.read_int
     }
 
 
