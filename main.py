@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 from anytree.exporter import DotExporter
 
 
+# TODO: Mode delimiter argument to config
+
 if __name__ == "__main__":
     mpl.use("TkAgg")
 
