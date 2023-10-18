@@ -12,13 +12,7 @@ import numpy as np
 from .run_info import RunInfo
 from .data_parser import DataParser
 from .colorprint import ColorPrinter as cp
-
-
-class SeuLog(pd.DataFrame):
-    name: str = ""
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+from .analysis import SeuLog
 
 
 class Node(RenderTreeNode):
