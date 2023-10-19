@@ -39,7 +39,7 @@ class DataInterface:
     golden_log: pd.Series = None
     non_register_runs: List[str] = list()
 
-    def __init__(self, run_info: RunInfo, delimiter: str = ".") -> None:
+    def __init__(self, run_info: RunInfo) -> None:
         self.run_info = run_info
 
         print_start_read = False
@@ -55,7 +55,7 @@ class DataInterface:
         if print_start_read:
             cp.print_header("Building register tree")
 
-        self._generate_register_tree(run_info, delimiter)
+        self._generate_register_tree(run_info)
 
         if not run_info.debug.percent_register_tree_populated:
             if print_start_read:
@@ -102,18 +102,18 @@ class DataInterface:
 
         return data
 
-    def _generate_register_tree(self, run_info: RunInfo, delimiter) -> None:
+    def _generate_register_tree(self, run_info: RunInfo) -> None:
         vpi_path = os.path.join(os.getcwd(), run_info.data.directory, run_info.data.vpi)
 
         with open(vpi_path, "r") as f:
             register_paths = f.readlines()
         register_paths = [path.strip() for path in register_paths]
 
-        root_path = register_paths[0].split(delimiter)[0]
+        root_path = register_paths[0].split(run_info.seu_metadata.register_delimiter)[0]
         self.root = Node(root_path, root_path)
 
         for reg_path in register_paths:
-            parts = reg_path.split(delimiter)
+            parts = reg_path.split(run_info.seu_metadata.register_delimiter)
             current_node = self.root
             path_to_current_node = parts[0]
 

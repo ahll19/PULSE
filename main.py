@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 from anytree.exporter import DotExporter
 
 
-# TODO: Move delimiter argument to config
 # TODO: Check that parsin is done correctly, and change the ini to match the log better
 # TODO: Extend coremark analysis to include the stacked by register plot
 

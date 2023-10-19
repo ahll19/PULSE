@@ -40,12 +40,20 @@ class Debug:
 
 class SeuMetaData:
     entries: List[str] = None
+    register: str = None
+    register_delimiter: str = None
 
     def __init__(self, runinfo_path: str) -> None:
         self.entries = []
 
         config = configparser.ConfigParser()
         config.read(runinfo_path)
+
+        # making sure register is present, along with register_delimiter
+        # If you get an error here make sure those entries are present in the ini file
+        # under the SEU_METADATA section
+        self.register = str(config["SEU_METADATA"]["register"])
+        self.register_delimiter = str(config["SEU_METADATA"]["register_delimiter"])
 
         for key, value in config["SEU_METADATA"].items():
             setattr(self, key, value)
