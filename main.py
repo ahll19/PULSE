@@ -13,8 +13,6 @@ import matplotlib.pyplot as plt
 from anytree.exporter import DotExporter
 
 
-# TODO: Check that parsin is done correctly, and change the ini to match the log better
-
 if __name__ == "__main__":
     mpl.use("TkAgg")
 

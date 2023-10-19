@@ -102,6 +102,19 @@ class DataInterface:
 
         return data
 
+    def get_openable_non_register_runs(self) -> List[str]:
+        runs = list()
+        for run_name in self.non_register_runs:
+            try:
+                with open(f"data/{run_name}/log.txt", "r") as f:
+                    _ = f.readlines()
+
+                runs.append(run_name)
+            except:
+                continue
+
+        return runs
+
     def _generate_register_tree(self, run_info: RunInfo) -> None:
         vpi_path = os.path.join(os.getcwd(), run_info.data.directory, run_info.data.vpi)
 
