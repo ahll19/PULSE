@@ -1,27 +1,31 @@
-from src import RegisterTree, Analyses, Config
+from src import (
+    DataInterface,
+    RunInfo,
+    BaseTools,
+    SilentError,
+    DataCorruptionError,
+    CriticalError,
+    IbexCoremarkTools,
+)
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from anytree.exporter import DotExporter
 
-import os
-
-
-def main():
-    config = Config("coremark")
-    reg_tree = RegisterTree(config)
-
-    rf_reg_name = "ibex_soc_wrap.ibex_soc_i.ibex_wrap.u_top.u_ibex_top.gen_regfile_ff.register_file_i"
-    node = reg_tree.get_node_by_path(rf_reg_name)
-
-    Analyses.binary_error_table_by_run_and_type(node, plot=True)
-    Analyses.error_rate_by_type(node, plot=True)
-    Analyses.error_rate_by_type_in_children(node, plot=True)
-    Analyses.error_rate_over_time(node, plot=True)
-    Analyses.test_coverage(node, plot=True)
-
 
 if __name__ == "__main__":
     mpl.use("TkAgg")
 
-    main()
+    runinfo = RunInfo("src/run_info/ibex_coremark.ini")
+    data_interface = DataInterface(runinfo)
+    all_data = data_interface.get_data_by_node(data_interface.root)
+
+    name = "register_file_i"
+    node = data_interface.get_node_by_name(name)[0]
+    node_data = data_interface.get_data_by_node(node)
+
+    IbexCoremarkTools.stacked_register_error_class(
+        node_data, data_interface.golden_log, visualize=True
+    )
+
+    _ = input("Press enter to continue")
