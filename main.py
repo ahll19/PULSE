@@ -44,4 +44,22 @@ if __name__ == "__main__":
         ibex_hwsec_coremark.coverage.n_bits,
     )
 
+    output = f"""
+    Adjusted probabilities:
+    ibex (vanilla):
+        silent: {ic_prob.silent}
+        corruption: {ic_prob.data_corruption}
+        critical: {ic_prob.critical}
+    ibex (hwsec):
+        silent: {ihc_prob.silent}
+        corruption: {ihc_prob.data_corruption}
+        critical: {ihc_prob.critical}
+    
+    Comparison ratio
+    Critical: {ihc_prob.critical / ic_prob.critical}
+    Corruption: {ihc_prob.data_corruption / ic_prob.data_corruption}
+    """
+
+    print(output)
+
     _ = input("Press enter to continue")
