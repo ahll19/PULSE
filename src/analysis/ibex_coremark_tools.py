@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from .base_tools import BaseTools, SeuLog
-from .error_definitions import SilentError, DataCorruptionError, CriticalError
+from .structures import SilentError, DataCorruptionError, CriticalError
 
 
 class IbexCoremarkTools(BaseTools):

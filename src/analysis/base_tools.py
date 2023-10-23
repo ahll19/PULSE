@@ -3,7 +3,12 @@ from typing import Union, Tuple
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from .error_definitions import SilentError, DataCorruptionError, CriticalError
+from .structures import (
+    SilentError,
+    DataCorruptionError,
+    CriticalError,
+    AdjustedErrorProbability,
+)
 
 
 class SeuLog(pd.DataFrame):
@@ -110,3 +115,21 @@ class BaseTools:
         fig.show()
 
         return df, fig
+
+    @classmethod
+    def adjusted_probability(
+        cls, seu_log: SeuLog, golden_log: pd.Series, n_cycles: int, n_bits: int
+    ) -> AdjustedErrorProbability:
+        w = n_bits * n_cycles
+        n = len(seu_log)
+        classification = cls.error_classification(seu_log, golden_log, False)
+
+        n_silent = (classification == SilentError.name).sum()
+        n_corruption = (classification == DataCorruptionError.name).sum()
+        n_critical = (classification == CriticalError.name).sum()
+
+        silent = w * n_silent / n
+        corruption = w * n_corruption / n
+        critical = w * n_critical / n
+
+        return AdjustedErrorProbability(silent, corruption, critical, w, n)
