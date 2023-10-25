@@ -102,6 +102,8 @@ class DataInterface:
 
         return data
 
+    # TODO: add method to get a leaves from a given node
+
     def get_openable_non_register_runs(self) -> List[str]:
         runs = list()
         for run_name in self.non_register_runs:

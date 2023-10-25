@@ -43,9 +43,12 @@ class DataCorruptionError(Error):
 
 
 class SilentError(Error):
-    color = "blue"
+    color = "cyan"
     name = "Silent Error"
     description = (
         "Logs where we can't tell the difference from the golden run, "
         "using [COMPARISON_DATA] from the .ini"
     )
+
+
+# TODO: add a method to get colors based on the order of a series or something
