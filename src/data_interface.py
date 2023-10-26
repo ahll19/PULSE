@@ -26,6 +26,20 @@ class Node(RenderTreeNode):
         children: List[Node] = None,
         **kwargs,
     ) -> None:
+        """
+        The node objects are part of a tree. Each node can access its children and it
+        its parent, and has some custom attributes associated with it. To see more
+        detailed documentation refer to the documentation of the anytree Python package
+
+        :param name: Name of the node
+        :type name: str
+        :param soc_path: Path to the node in the SoC hiearchy
+        :type soc_path: str
+        :param parent: Parent of the node, defaults to None
+        :type parent: Node, optional
+        :param children: Children of the node, defaults to None
+        :type children: List[Node], optional
+        """
         super().__init__(name, parent, children, **kwargs)
         self.soc_path = soc_path
 
@@ -40,6 +54,18 @@ class DataInterface:
     non_register_runs: List[str] = list()
 
     def __init__(self, run_info: RunInfo) -> None:
+        """
+        The data-structure the user should interface with in order to get data for
+        analyses.
+
+        The data interface has a reference to the configuartion object run_info, the
+        root of the SoC-hiearchy tree, the full SeuLog describing all parsed runs,
+        the golden run information, and the runs where we could not parse a register.
+
+        :param run_info: Configuration object to use for parsing and interfacing with
+        the data
+        :type run_info: RunInfo
+        """
         self.run_info = run_info
 
         print_start_read = False
@@ -77,6 +103,17 @@ class DataInterface:
         cp.print_header("Built register tree")
 
     def get_node_by_path(self, path: str) -> Union[Node, None]:
+        """
+        Specify an SoC path, e.g. wrap.u_top.regfile.reg[2], and get the node
+        corresponding to that path. If multiple nodes match this path the node with the
+        smallest level is returned (i.e. the node with the shortest path in terms of
+        levels)
+
+        :param path: path to search the node by
+        :type path: str
+        :return: Node found by the search. If no Node is found returns None
+        :rtype: Union[Node, None]
+        """
         nodes = findall_nodes(
             self.root, filter_=lambda node: node.soc_path.startswith(path)
         )
@@ -89,9 +126,26 @@ class DataInterface:
         return nodes[node_depths.index(min(node_depths))]
 
     def get_node_by_name(self, name: str) -> Tuple[Node]:
+        """
+        Returns a tuple of all nodes where their name matches the name specified
+
+        :param name: Name to search by
+        :type name: str
+        :return: Tuple of nodes found in the search
+        :rtype: Tuple[Node]
+        """
         return findall_nodes(self.root, filter_=lambda node: node.name == name)
 
     def get_data_by_node(self, node: Node) -> SeuLog:
+        """
+        Use this method to qeury the full SeuLog for only data pertaining to a given
+        node. All data which corresponds to this node, and its ancestors, is returned.
+
+        :param node: Node to qeury the data with
+        :type node: Node
+        :return: Data pertaining to the specified node
+        :rtype: SeuLog
+        """
         data = self.seu_log.loc[
             self.seu_log.apply(
                 lambda x: x["register"].startswith(node.soc_path), axis=1
@@ -105,6 +159,13 @@ class DataInterface:
     # TODO: add method to get a leaves from a given node
 
     def get_openable_non_register_runs(self) -> List[str]:
+        """
+        Returns a list of runs which we can open, but where we cannot find the register
+        entry. This is often because the run stalled, or had an illegal instruction.
+
+        :return: List of openable runs where no register entry was parsed
+        :rtype: List[str]
+        """
         runs = list()
         for run_name in self.non_register_runs:
             try:
@@ -118,6 +179,13 @@ class DataInterface:
         return runs
 
     def _generate_register_tree(self, run_info: RunInfo) -> None:
+        """
+        Uses the VPI entry in the config file (*.ini) to generate the register tree.
+        This tree represents the SoC hiearchy
+
+        :param run_info: Configuration object
+        :type run_info: RunInfo
+        """
         vpi_path = os.path.join(os.getcwd(), run_info.data.directory, run_info.data.vpi)
 
         with open(vpi_path, "r") as f:
