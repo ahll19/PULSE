@@ -12,6 +12,19 @@ class Data:
     max_number_logs: int = None
 
     def __init__(self, runinfo_path: str) -> None:
+        """
+        Initializes the Data section of the runinfo file.
+
+        Data contains information about where the parser should look for specific files,
+        and other settings regarding to parsin the data, such as timeout.
+
+        All variables of this class are hard-coded, and as such must be present in
+        the config file.
+
+        :param runinfo_path: path to the runinfo file, these are the *.ini files in the
+        same folder as ths file.
+        :type runinfo_path: str
+        """
         config = configparser.ConfigParser()
         config.read(runinfo_path)
 
@@ -27,6 +40,20 @@ class Coverage:
     n_bits: int = None
 
     def __init__(self, runinfo_path: str) -> None:
+        """
+        Initializes the Coverage section of the runinfo file.
+
+        Coverage is not directly used in the data-parser, but should be used for
+        calculating coverage statistics
+
+        # TODO: BaseTools probability calcuations should be able to take runinfo object
+        # TODO: Once Anvesh adds options on whether to include section in [OPTIONAL] do the same here
+        # TODO: Discuss removing this section from the ini, if no more information will be added
+
+        :param runinfo_path: path to the runinfo file, these are the *.ini files in the
+        same folder as ths file.
+        :type runinfo_path: str
+        """
         config = configparser.ConfigParser()
         config.read(runinfo_path)
 
@@ -40,6 +67,16 @@ class Debug:
     percent_register_tree_populated: bool = None
 
     def __init__(self, runinfo_path: str) -> None:
+        """
+        Initializes the Debug section of the runinfo file.
+
+        Debug is used to turn on/off certain debug features of the parser. if all
+        features in the ini file are turned off nothing will be printed to the console.
+
+        :param runinfo_path: path to the runinfo file, these are the *.ini files in the
+        same folder as ths file.
+        :type runinfo_path: str
+        """
         config = configparser.ConfigParser()
         config.read(runinfo_path)
 
@@ -56,6 +93,35 @@ class SeuMetaData:
     register_delimiter: str = None
 
     def __init__(self, runinfo_path: str) -> None:
+        """
+        Initializes the SeuMetaData section of the runinfo file.
+
+        SeuMetaData is used to specify which lines in the log file should be parsed and
+        define the SEU run. There MUST be a "register" and
+        "register_delimiter" entry in the ini file, as these are used to parse the log
+        and structure the data-tree. These registers and delimiters must match across
+        the [DATA][vpi] file, and the log file lines.
+
+        All other information than the hard coded register and register_delimiter are
+        used to specify information about the SEU run, such as when it was run, and
+        what the register values were before and after the injection.
+
+        These lines are among those that will be pattern-matched against the logfile.
+
+        Example:
+        the logs contain the line
+            Will flip bit at cycle: xxxx
+        and we want to save xxxx. We then write the following in the ini file:
+            injection_cycle=Will flip bit at cycle:
+        which will save whatever came after this pattern match, in this case xxxx.
+
+        Make sure that the pattern match will only match one line in the log file,
+        since the first matching line encountered will be used for the meta-data.
+
+        :param runinfo_path: path to the runinfo file, these are the *.ini files in the
+        same folder as ths file.
+        :type runinfo_path: str
+        """
         self.entries = []
 
         config = configparser.ConfigParser()
@@ -76,6 +142,27 @@ class ComparisonData:
     entries: List[str] = None
 
     def __init__(self, runinfo_path: str) -> None:
+        """
+        Initializes the ComparisonData section of the runinfo file.
+
+        ComparisonData is used to specify which lines in the log file should be parsed
+        and define the golden run. Lines in this section are pattern matched as in
+        SeuMetaData. Lines specified here must be present, identically, both in the SEU
+        runs and in the golden run. No entries are hardcoded in this section.
+
+        Example:
+        the logs contain the line
+            calculation result: xxxx
+        and we want to this line. We then write the following in the ini file:
+            calculation_result=calculation result:
+
+        Values in this section are used to define data-corruption-errors
+
+
+        :param runinfo_path: path to the runinfo file, these are the *.ini files in the
+        same folder as ths file.
+        :type runinfo_path: str
+        """
         self.entries = []
 
         config = configparser.ConfigParser()

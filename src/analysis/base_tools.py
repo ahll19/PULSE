@@ -17,6 +17,12 @@ class SeuLog(pd.DataFrame):
     name: str = ""
 
     def __init__(self, *args, **kwargs) -> None:
+        """
+        Wrapper class for the pandas dataframe. This is just to add the attribute name
+        for now, but we could extend this class to be able to do summaries or similar.
+
+        All SEU log dataframes should be wrapped in this class.
+        """
         super().__init__(*args, **kwargs)
 
 
@@ -25,6 +31,24 @@ class BaseTools:
     def error_classification(
         cls, seu_log: SeuLog, golden_log: pd.Series, visualize: bool = False
     ) -> Union[pd.Series, Tuple[pd.Series, plt.Figure]]:
+        """
+        Used to classify the error type in each run of the seu log. The golden run
+        object is used to compare against. For definitions of each error see the
+        error_definitions.py file, or print out each error object from that same file.
+
+        :param seu_log: SeuLog of a given run. Can be queried from the DataInterface
+        object, by usign a node.
+        :type seu_log: SeuLog
+        :param golden_log: Series showing the information parsed from the golden run.
+        can be found on the golden_log attribute of the DataInterface class.
+        :type golden_log: pd.Series
+        :param visualize: Whether or not to visualize the results, defaults to False
+        :type visualize: bool, optional
+        :return: Returns the error classifications in a series. The string values of the
+        series are defined by the Error objects' names. If visualize==True this method
+        also returns the figure object from the visualization.
+        :rtype: Union[pd.Series, Tuple[pd.Series, plt.Figure]]
+        """
         cols = seu_log.columns.intersection(golden_log.index)
 
         is_critical = seu_log.isna().any(axis=1)
@@ -73,7 +97,35 @@ class BaseTools:
         window_size: int = 1000,
         visualize: bool = False,
     ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, plt.figure]]:
+        """
+        If you SeuLog has an entry corresponding to a time value, this method can be
+        used to visualize how that error rate changes over time.
+
+        This method creates an error_classification series based on
+        cls.error_classification(), and then uses a window in time to estimate the error
+        rate by taking n_error_rate_in_window / n_injection_in_window for each type of
+        error.
+
+        :param seu_log: SeuLog of a given run. Can be queried from the DataInterface
+        object, by usign a node.
+        :type seu_log: SeuLog
+        :param golden_log: Series showing the information parsed from the golden run.
+        can be found on the golden_log attribute of the DataInterface class.
+        :type golden_log: pd.Series
+        :param injection_time_col: Name of column in SeuLog which corresponds to the
+        time value. Make sure only numerical data is present in this column.
+        :type injection_time_col: str
+        :param window_size: How large of a window to use, defaults to 1000
+        :type window_size: int, optional
+        :param visualize: whether or not to visualize the results, defaults to False
+        :type visualize: bool, optional
+        :return: Returns a dataframe with error rates for all types. If
+        visualize==True also returns the figure used for visualization.
+        :rtype: Union[pd.DataFrame, Tuple[pd.DataFrame, plt.figure]]
+        """
         error_classifications = cls.error_classification(seu_log, golden_log, False)
+
+        # TODO: Double-check that the window definition makes sense
 
         silent_error = error_classifications == SilentError.name
         silent_error = silent_error.astype(int)
@@ -122,7 +174,29 @@ class BaseTools:
     def adjusted_probability(
         cls, seu_log: SeuLog, golden_log: pd.Series, n_cycles: int, n_bits: int
     ) -> AdjustedErrorProbability:
-        # TODO: Maybe add comparison ratio from the article. Issue is number of args
+        """
+        Horst Schirmeier et al proposed in their article "Avoiding Pitfalls in
+        Fault-Injection Based Comparison of Program Susceptibility to Soft Errors" that
+        normal methods for comparing the resilience of different SoC designs have some
+        pitfalls. This method is creating an adjusted calculation based on what was
+        proposed in that article
+
+        :param seu_log: SeuLog of a given run. Can be queried from the DataInterface
+        object, by usign a node.
+        :type seu_log: SeuLog
+        :param golden_log: Series showing the information parsed from the golden run.
+        can be found on the golden_log attribute of the DataInterface class.
+        :type golden_log: pd.Series
+        :param n_cycles: Number of cycles present in the simulation
+        :type n_cycles: int
+        :param n_bits: Number of bits the simulator can inject on
+        :type n_bits: int
+        :return: A custom object with attributes which are results of the adjusted
+        calculation
+        :rtype: AdjustedErrorProbability
+        """
+        # TODO: Add functionality onto the AdjustedErrorProbability object instead, and use ini files perhaps
+        # TODO: If the above is done, add a method on the coremark_ibex analysis to carry out this analysis
         w = n_bits * n_cycles
         n = len(seu_log)
         classification = cls.error_classification(seu_log, golden_log, False)
@@ -145,6 +219,27 @@ class BaseTools:
         confidence: float = 0.95,
         visualize: bool = False,
     ) -> Union[pd.Series, Tuple[pd.Series, plt.Figure]]:
+        """
+        Calculates the confidence intervals for the given error rate estimates. For more
+        details on the technical formulation of this see the docs folder
+
+        # TODO: Add docs folder with docs from worksheet
+
+        :param seu_log: SeuLog of a given run. Can be queried from the DataInterface
+        object, by usign a node.
+        :type seu_log: SeuLog
+        :param golden_log: Series showing the information parsed from the golden run.
+        can be found on the golden_log attribute of the DataInterface class.
+        :type golden_log: pd.Series
+        :param confidence: Confidence level, 0.95-> 95% confidence that the true
+        parameter (actual error rate) is in the calculated interval, defaults to 0.95
+        :type confidence: float, optional
+        :param visualize: Whether or not to visualize the results, defaults to False
+        :type visualize: bool, optional
+        :return: Returns the size of the confidence intervals of error rate estimates.
+        If visualize==True also returns the figure object created by the visualization.
+        :rtype: Union[pd.Series, Tuple[pd.Series, plt.Figure]]
+        """
         ec = BaseTools.error_classification(seu_log, golden_log)
         ec_onehot = pd.get_dummies(ec)
         n = len(ec)
@@ -190,6 +285,27 @@ class BaseTools:
     def expected_num_multi_injection_runs(
         n_injection_cycles: int, n_target_bits, n_runs: int
     ) -> float:
+        """
+        Based on the mathematical model of the SEU injection system we can calculate
+        the estimated number of "injections points" (e.g. bit # 3000, at cycle 500)
+        where multiple injections take place. I.e. if this method returns 400 we expect
+        that 400 injection points have multiple injections on them. Note that *almost*
+        all of these points will only have 2 injections on them, since the number of
+        injections on each points follows a rapidly declining binomial distribution.
+        This rapidity does depend on the size of the injection space, and do note that
+        the number returned by this method is a sort of "lower bound" of the number of
+        "wasted runs".
+
+        :param n_injection_cycles: How many cycles is it possible for the simulator to
+        inject on
+        :type n_injection_cycles: int
+        :param n_target_bits: How many bits is it posible for the simulator to inject on
+        :type n_target_bits: _type_
+        :param n_runs: Number of runs carried out (in theory, does not have to be done)
+        :type n_runs: int
+        :return: Expected number of multi-injection points
+        :rtype: float
+        """
         S = n_injection_cycles * n_target_bits
         eps = 1 / S
 
@@ -206,6 +322,25 @@ class BaseTools:
     def variance_num_multi_injection_runs(
         cls, n_injection_cycles: int, n_target_bits, n_runs: int
     ) -> float:
+        """
+        More or less the same calculation as the cls.expected_num_multi_injection_runs()
+        method, except we calculate the variance of this number of multi-bit run.
+
+        For more mathematical detail on both of these methods refer to the docs folder
+
+        # TODO: Since this variable will be i.i.d. we can do some distribution plots of it
+        # TODO: Check what the expected number of injections on a variable is, given that it is >=2
+
+        :param n_injection_cycles: How many cycles is it possible for the simulator to
+        inject on
+        :type n_injection_cycles: int
+        :param n_target_bits: How many bits is it posible for the simulator to inject on
+        :type n_target_bits: _type_
+        :param n_runs: Number of runs carried out (in theory, does not have to be done)
+        :type n_runs: int
+        :return: Variance of the number of "wasted" runs
+        :rtype: float
+        """
         _ = ""
         S = n_injection_cycles * n_target_bits
         eps = 1 / S
