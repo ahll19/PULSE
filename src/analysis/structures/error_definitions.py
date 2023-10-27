@@ -6,7 +6,7 @@ class BaseError(ABC):
     Base class for error definitions. This class is an abstract base class
     and should not be instantiated.
 
-    The name is used for qeuerying the objects created when we do error classification
+    The name is used for querying the objects created when we do error classification
     on an object.
 
     The color is used for plotting consistency. The color should be a valid matplotlib

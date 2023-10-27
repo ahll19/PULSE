@@ -126,6 +126,8 @@ class BaseTools:
         error_classifications = cls.error_classification(seu_log, golden_log, False)
 
         # TODO: Double-check that the window definition makes sense
+        # TODO: Add error bars to the errror rate over time
+        # TODO: Check that rolling does a stepsize=1, for better time resolution
 
         silent_error = error_classifications == SilentError.name
         silent_error = silent_error.astype(int)
@@ -283,7 +285,7 @@ class BaseTools:
 
     @classmethod
     def expected_num_multi_injection_runs(
-        n_injection_cycles: int, n_target_bits, n_runs: int
+        cls, n_injection_cycles: int, n_target_bits: int, n_runs: int
     ) -> float:
         """
         Based on the mathematical model of the SEU injection system we can calculate
@@ -355,4 +357,4 @@ class BaseTools:
         for j in range(n_runs):
             running_sum += (j - y_expect) ** 2 * binom[j + 1]
 
-        tmp = S * running_sum / n_runs
+        return S * running_sum / n_runs

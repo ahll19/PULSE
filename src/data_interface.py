@@ -49,6 +49,7 @@ class DataInterface:
 
     root: Node = None
 
+    # TODO: Wrap seu_log in SeuLog
     seu_log: SeuLog = None
     golden_log: pd.Series = None
     non_register_runs: List[str] = list()
@@ -138,10 +139,10 @@ class DataInterface:
 
     def get_data_by_node(self, node: Node) -> SeuLog:
         """
-        Use this method to qeury the full SeuLog for only data pertaining to a given
+        Use this method to query the full SeuLog for only data pertaining to a given
         node. All data which corresponds to this node, and its ancestors, is returned.
 
-        :param node: Node to qeury the data with
+        :param node: Node to query the data with
         :type node: Node
         :return: Data pertaining to the specified node
         :rtype: SeuLog
