@@ -20,7 +20,7 @@ class Data:
         self.seu = str(config["DATA"]["seu"])
         self.vpi = str(config["DATA"]["vpi"])
         self.timeout = int(config["DATA"]["timeout"])
-
+        self.read_optional = bool(int(config["DATA"]["read_optional"]))
 
 class Debug:
     error_utf_parsing: bool = None
@@ -70,5 +70,20 @@ class ComparisonData:
         config.read(runinfo_path)
 
         for key, value in config["COMPARISON_DATA"].items():
+            setattr(self, key, value)
+            self.entries.append(key)
+
+
+class OptionalData:
+    entries: List[str] = None
+    read_optional : bool = None
+
+    def __init__(self, runinfo_path: str) -> None:
+        self.entries = []
+
+        config = configparser.ConfigParser()
+        config.read(runinfo_path)
+
+        for key, value in config["OPTIONAL_DATA"].items():
             setattr(self, key, value)
             self.entries.append(key)

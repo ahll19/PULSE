@@ -5,7 +5,7 @@ from src import (
     SilentError,
     DataCorruptionError,
     CriticalError,
-    IbexCoremarkTools,
+    IbexHwsecCoremarkTools,
 )
 
 import matplotlib as mpl
@@ -16,16 +16,19 @@ from anytree.exporter import DotExporter
 if __name__ == "__main__":
     mpl.use("TkAgg")
 
-    runinfo = RunInfo("src/run_info/ibex_coremark.ini")
+    runinfo = RunInfo("src/run_info/ibex_hwsec_coremark.ini")
     data_interface = DataInterface(runinfo)
     all_data = data_interface.get_data_by_node(data_interface.root)
 
     name = "register_file_i"
     node = data_interface.get_node_by_name(name)[0]
     node_data = data_interface.get_data_by_node(node)
+    
+    root_data = data_interface.get_data_by_node(data_interface.root)
 
-    IbexCoremarkTools.stacked_register_error_class(
-        node_data, data_interface.golden_log, visualize=True
+    alert_classifications = IbexHwsecCoremarkTools.alert_classification(
+    
+        root_data, data_interface.golden_log, True
     )
 
     _ = input("Press enter to continue")
