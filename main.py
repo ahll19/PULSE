@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     root_data = data_interface.get_data_by_node(data_interface.root)
 
-    alert_classifications = IbexHwsecCoremarkTools.alert_classification(
+    alert_classifications = IbexHwsecCoremarkTools.error_classification(
         root_data, data_interface.golden_log, True
     )
 

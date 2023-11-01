@@ -1,10 +1,9 @@
-from .sections import Data, SeuMetaData, ComparisonData, Debug, OptionalData, Coverage
+from .sections import Data, SeuMetaData, ComparisonData, Debug, OptionalData
 
 
 class RunInfo:
     path: str = None
     data: Data = None
-    coverage: Coverage = None
     debug: Debug = None
     seu_metadata: SeuMetaData = None
     comparison_data: ComparisonData = None
@@ -29,7 +28,6 @@ class RunInfo:
         """
         self.path = runinfo_path
         self.data = Data(runinfo_path)
-        self.coverage = Coverage(runinfo_path)
         self.debug = Debug(runinfo_path)
         self.seu_metadata = SeuMetaData(runinfo_path)
         self.comparison_data = ComparisonData(runinfo_path)

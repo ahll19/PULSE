@@ -140,11 +140,7 @@ class DataParser:
             else:
                 return None, False, 1
 
-            for (
-                line
-            ) in (
-                lines
-            ):  # TODO add handling of multiple occurence of optional data, such as alert
+            for line in lines:
                 if match_pattern in line:
                     seu_log_dict[info] = line.split(match_pattern)[1].strip()
                     unfound_info.remove(info)

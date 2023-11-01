@@ -51,8 +51,6 @@ class BaseTools:
         """
         cols = seu_log.columns.intersection(golden_log.index)
 
-        # TODO: Rewrite this so that we only do hard errors on missing comparison values
-
         is_critical = seu_log.isna().any(axis=1)
         is_critical.name = CriticalError.name
 
@@ -127,10 +125,6 @@ class BaseTools:
         """
         error_classifications = cls.error_classification(seu_log, golden_log, False)
 
-        # TODO: Double-check that the window definition makes sense
-        # TODO: Add error bars to the errror rate over time
-        # TODO: Check that rolling does a stepsize=1, for better time resolution
-
         silent_error = error_classifications == SilentError.name
         silent_error = silent_error.astype(int)
         corruption_error = error_classifications == DataCorruptionError.name
@@ -199,8 +193,7 @@ class BaseTools:
         calculation
         :rtype: AdjustedErrorProbability
         """
-        # TODO: Add functionality onto the AdjustedErrorProbability object instead, and use ini files perhaps
-        # TODO: If the above is done, add a method on the coremark_ibex analysis to carry out this analysis
+
         w = n_bits * n_cycles
         n = len(seu_log)
         classification = cls.error_classification(seu_log, golden_log, False)
@@ -226,8 +219,6 @@ class BaseTools:
         """
         Calculates the confidence intervals for the given error rate estimates. For more
         details on the technical formulation of this see the docs folder
-
-        # TODO: Add docs folder with docs from worksheet
 
         :param seu_log: SeuLog of a given run. Can be queried from the DataInterface
         object, by usign a node.
@@ -287,43 +278,6 @@ class BaseTools:
 
     @classmethod
     def expected_num_multi_injection_runs(
-        cls, n_injection_cycles: int, n_target_bits: int, n_runs: int
-    ) -> float:
-        """
-        Based on the mathematical model of the SEU injection system we can calculate
-        the estimated number of "injections points" (e.g. bit # 3000, at cycle 500)
-        where multiple injections take place. I.e. if this method returns 400 we expect
-        that 400 injection points have multiple injections on them. Note that *almost*
-        all of these points will only have 2 injections on them, since the number of
-        injections on each points follows a rapidly declining binomial distribution.
-        This rapidity does depend on the size of the injection space, and do note that
-        the number returned by this method is a sort of "lower bound" of the number of
-        "wasted runs".
-
-        :param n_injection_cycles: How many cycles is it possible for the simulator to
-        inject on
-        :type n_injection_cycles: int
-        :param n_target_bits: How many bits is it posible for the simulator to inject on
-        :type n_target_bits: _type_
-        :param n_runs: Number of runs carried out (in theory, does not have to be done)
-        :type n_runs: int
-        :return: Expected number of multi-injection points
-        :rtype: float
-        """
-        S = n_injection_cycles * n_target_bits
-        eps = 1 / S
-
-        x = np.arange(0, n_runs + 1)
-
-        binom = stats.binom.pmf(x, n_runs, eps)
-        inner_sum = np.sum(binom[2:] * x[1:-1])
-
-        expectation = S * inner_sum
-
-        return expectation
-
-    @classmethod
-    def variance_num_multi_injection_runs(
         cls, n_injection_cycles: int, n_target_bits, n_runs: int
     ) -> float:
         """
@@ -332,31 +286,5 @@ class BaseTools:
 
         For more mathematical detail on both of these methods refer to the docs folder
 
-        # TODO: Since this variable will be i.i.d. we can do some distribution plots of it
-        # TODO: Check what the expected number of injections on a variable is, given that it is >=2
-
-        :param n_injection_cycles: How many cycles is it possible for the simulator to
-        inject on
-        :type n_injection_cycles: int
-        :param n_target_bits: How many bits is it posible for the simulator to inject on
-        :type n_target_bits: _type_
-        :param n_runs: Number of runs carried out (in theory, does not have to be done)
-        :type n_runs: int
-        :return: Variance of the number of "wasted" runs
-        :rtype: float
         """
-        _ = ""
-        S = n_injection_cycles * n_target_bits
-        eps = 1 / S
-
-        x = np.arange(0, n_runs + 1)
-
-        binom = stats.binom.pmf(x, n_runs, eps)
-        y_expect = np.sum(binom[2:] * x[1:-1])
-
-        running_sum = 0
-
-        for j in range(n_runs):
-            running_sum += (j - y_expect) ** 2 * binom[j + 1]
-
-        return S * running_sum / n_runs
+        pass
