@@ -51,6 +51,8 @@ class BaseTools:
         """
         cols = seu_log.columns.intersection(golden_log.index)
 
+        # TODO: Rewrite this so that we only do hard errors on missing comparison values
+
         is_critical = seu_log.isna().any(axis=1)
         is_critical.name = CriticalError.name
 
