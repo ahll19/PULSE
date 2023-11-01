@@ -50,7 +50,7 @@ class BaseError(ABC):
         return self.__repr__()
 
 
-class CriticalError(Error):
+class CriticalError(BaseError):
     color = "tab:red"
     name = "Critical Error"
     description = (
@@ -59,7 +59,7 @@ class CriticalError(Error):
     )
 
 
-class DataCorruptionError(Error):
+class DataCorruptionError(BaseError):
     color = "tab:orange"
     name = "Data Corruption Error"
     description = (
@@ -68,7 +68,7 @@ class DataCorruptionError(Error):
     )
 
 
-class SilentError(Error):
+class SilentError(BaseError):
     color = "tab:blue"
     name = "Silent Error"
     description = (

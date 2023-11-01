@@ -20,7 +20,7 @@ from anytree.exporter import DotExporter
 if __name__ == "__main__":
     mpl.use("TkAgg")
 
-    runinfo = RunInfo("src/run_info/ibex_hwsec_coremark.ini")
+    runinfo = RunInfo("src/run_info/example_run_info/example_config_1.ini")
     data_interface = DataInterface(runinfo)
     all_data = data_interface.get_data_by_node(data_interface.root)
 

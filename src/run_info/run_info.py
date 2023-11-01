@@ -1,4 +1,4 @@
-from .sections import Data, SeuMetaData, ComparisonData, Debug, OptionalData
+from .sections import Data, SeuMetaData, ComparisonData, Debug, OptionalData, Coverage
 
 
 class RunInfo:
