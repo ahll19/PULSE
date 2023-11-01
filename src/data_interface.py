@@ -1,8 +1,6 @@
 from __future__ import annotations
-from typing import Dict, List, Tuple, Union
-from time import time as current_time
+from typing import List, Tuple, Union
 import os
-import sys
 
 from anytree import Node as RenderTreeNode
 from anytree import findall as findall_nodes

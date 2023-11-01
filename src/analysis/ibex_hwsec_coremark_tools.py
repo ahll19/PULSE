@@ -54,7 +54,7 @@ class IbexHwsecCoremarkTools(IbexCoremarkTools):
             corruption_error.sum(),
             silent_error.sum(),
         ]
-        alert_ratios = [a / e for a, e in zip(alert_series, error_heights)]
+        [a / e for a, e in zip(alert_series, error_heights)]
         is_log = max(error_heights) > 10 * min(error_heights)
 
         # Making a helper df to plot multi-bars

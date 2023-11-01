@@ -220,4 +220,4 @@ class BaseTools:
         for j in range(n_runs):
             running_sum += (j - y_expect) ** 2 * binom[j + 1]
 
-        tmp = S * running_sum / n_runs
+        S * running_sum / n_runs
