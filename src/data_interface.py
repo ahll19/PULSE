@@ -47,7 +47,6 @@ class DataInterface:
 
     root: Node = None
 
-    # TODO: Wrap seu_log in SeuLog
     seu_log: SeuLog = None
     golden_log: pd.Series = None
     non_register_runs: List[str] = list()
@@ -154,8 +153,6 @@ class DataInterface:
         data.name = node.name
 
         return data
-
-    # TODO: add method to get a leaves from a given node
 
     def get_openable_non_register_runs(self) -> List[str]:
         """

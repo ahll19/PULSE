@@ -36,32 +36,6 @@ class Data:
         self.read_optional = bool(int(config["DATA"]["read_optional"]))
 
 
-class Coverage:
-    n_cycles: int = None
-    n_bits: int = None
-
-    def __init__(self, runinfo_path: str) -> None:
-        """
-        Initializes the Coverage section of the runinfo file.
-
-        Coverage is not directly used in the data-parser, but should be used for
-        calculating coverage statistics
-
-        # TODO: BaseTools probability calcuations should be able to take runinfo object
-        # TODO: Once Anvesh adds options on whether to include section in [OPTIONAL] do the same here
-        # TODO: Discuss removing this section from the ini, if no more information will be added
-
-        :param runinfo_path: path to the runinfo file, these are the *.ini files in the
-        same folder as ths file.
-        :type runinfo_path: str
-        """
-        config = configparser.ConfigParser()
-        config.read(runinfo_path)
-
-        self.n_cycles = int(config["COVERAGE"]["n_cycles"])
-        self.n_bits = int(config["COVERAGE"]["n_bits"])
-
-
 class Debug:
     error_utf_parsing: bool = None
     percent_failed_reads: bool = None
