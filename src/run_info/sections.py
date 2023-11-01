@@ -22,6 +22,18 @@ class Data:
         self.timeout = int(config["DATA"]["timeout"])
         self.read_optional = bool(int(config["DATA"]["read_optional"]))
 
+class Coverage:
+    n_cycles: int = None
+    n_bits: int = None
+
+    def __init__(self, runinfo_path: str) -> None:
+        config = configparser.ConfigParser()
+        config.read(runinfo_path)
+
+        self.n_cycles = int(config["COVERAGE"]["n_cycles"])
+        self.n_bits = int(config["COVERAGE"]["n_bits"])
+
+
 class Debug:
     error_utf_parsing: bool = None
     percent_failed_reads: bool = None

@@ -10,6 +10,10 @@ from src import (
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import scipy.stats as stats
+from scipy.special import comb
 from anytree.exporter import DotExporter
 
 
@@ -31,4 +35,4 @@ if __name__ == "__main__":
         root_data, data_interface.golden_log, True
     )
 
-    _ = input("Press enter to continue")
+    _ = ""
