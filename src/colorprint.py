@@ -1,3 +1,7 @@
+"""
+Class for printing color to the terminal. Used mostly in debugging, but can be used if
+you wish to do so.
+"""
 from time import time as get_curr_time
 
 

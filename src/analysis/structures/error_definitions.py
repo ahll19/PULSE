@@ -1,7 +1,21 @@
 from abc import ABC, abstractmethod
 
 
-class Error(ABC):
+class BaseError(ABC):
+    """
+    Base class for error definitions. This class is an abstract base class
+    and should not be instantiated.
+
+    The name is used for querying the objects created when we do error classification
+    on an object.
+
+    The color is used for plotting consistency. The color should be a valid matplotlib
+    color.
+
+    The description is used for printing the error definition to the console. Also for
+    looking up specifically what one type of error is classified by.
+    """
+
     @property
     @abstractmethod
     def color(self) -> str:
@@ -18,9 +32,21 @@ class Error(ABC):
         pass
 
     def __repr__(self) -> str:
+        """
+        Used to print the error definition to the console.
+
+        :return: Error definition summary
+        :rtype: str
+        """
         return f"{self.name} ({self.color})\n{self.description}"
 
     def __str__(self) -> str:
+        """
+        When error classes are cast to string types this method is called.
+
+        :return: Error definition summary
+        :rtype: str
+        """
         return self.__repr__()
 
 
