@@ -82,7 +82,7 @@ class DataParser:
                     optional_log_dict, found_all_optionals, _ = cls._read_optional_log(
                         run_info, path, optional_find
                     )
-                    log_dict |= optional_log_dict # append optional dict  
+                    log_dict |= optional_log_dict  # append optional dict
                 run_logs[run] = log_dict
             else:
                 non_reg_runs.append(run)
@@ -121,7 +121,11 @@ class DataParser:
             else:
                 return None, False, 1
 
-            for line in lines: # TODO add handling of multiple occurence of optional data, such as alert
+            for (
+                line
+            ) in (
+                lines
+            ):  # TODO add handling of multiple occurence of optional data, such as alert
                 if match_pattern in line:
                     seu_log_dict[info] = line.split(match_pattern)[1].strip()
                     unfound_info.remove(info)

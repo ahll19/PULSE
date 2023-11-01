@@ -22,6 +22,7 @@ class Data:
         self.timeout = int(config["DATA"]["timeout"])
         self.read_optional = bool(int(config["DATA"]["read_optional"]))
 
+
 class Coverage:
     n_cycles: int = None
     n_bits: int = None
@@ -88,7 +89,7 @@ class ComparisonData:
 
 class OptionalData:
     entries: List[str] = None
-    read_optional : bool = None
+    read_optional: bool = None
 
     def __init__(self, runinfo_path: str) -> None:
         self.entries = []

@@ -27,11 +27,10 @@ if __name__ == "__main__":
     name = "register_file_i"
     node = data_interface.get_node_by_name(name)[0]
     node_data = data_interface.get_data_by_node(node)
-    
+
     root_data = data_interface.get_data_by_node(data_interface.root)
 
     alert_classifications = IbexHwsecCoremarkTools.alert_classification(
-    
         root_data, data_interface.golden_log, True
     )
 

@@ -1,5 +1,6 @@
 from .sections import Data, SeuMetaData, ComparisonData, Debug, OptionalData
 
+
 class RunInfo:
     path: str = None
     data: Data = None
@@ -17,6 +18,7 @@ class RunInfo:
         self.seu_metadata = SeuMetaData(runinfo_path)
         self.comparison_data = ComparisonData(runinfo_path)
         self.optional_data = OptionalData(runinfo_path)
+
 
 if __name__ == "__main__":
     runinfo = RunInfo("ibex_coremark.ini")

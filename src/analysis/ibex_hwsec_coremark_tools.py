@@ -2,21 +2,21 @@ from .base_tools import SeuLog
 from .ibex_coremark_tools import IbexCoremarkTools
 
 from .base_tools import BaseTools, SeuLog
-from .error_definitions import SilentError, DataCorruptionError, CriticalError, Error
+from .structures import SilentError, DataCorruptionError, CriticalError
 
 from typing import Union, Tuple
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
+
 class IbexHwsecCoremarkTools(IbexCoremarkTools):
     @classmethod
     def alert_classification(
         cls, seu_log: SeuLog, golden_log: pd.Series, visualize: bool = False
     ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, plt.Figure]]:
-
         error_classifications = cls.error_classification(seu_log, golden_log, False)
-        
+
         critical_error = error_classifications == CriticalError.name
         corruption_error = error_classifications == DataCorruptionError.name
         silent_error = error_classifications == SilentError.name
@@ -25,9 +25,9 @@ class IbexHwsecCoremarkTools(IbexCoremarkTools):
         alert_series = alert_series.astype(int)
 
         alert_heights = [
-            alert_series[critical_error].sum(), 
-            alert_series[corruption_error].sum(),  
-            alert_series[silent_error].sum(),  
+            alert_series[critical_error].sum(),
+            alert_series[corruption_error].sum(),
+            alert_series[silent_error].sum(),
         ]
 
         critical_error = critical_error.astype(int)
@@ -41,38 +41,42 @@ class IbexHwsecCoremarkTools(IbexCoremarkTools):
                 CriticalError.name: critical_error,
                 DataCorruptionError.name: corruption_error,
                 SilentError.name: silent_error,
-                "injection_cycle" : time_index,
-                "alert" : alert_series, 
+                "injection_cycle": time_index,
+                "alert": alert_series,
             }
         )
         if not visualize:
-            return df 
- 
+            return df
+
         fig, ax = plt.subplots()
-        error_heights = [critical_error.sum(), corruption_error.sum(), silent_error.sum()]
-        alert_ratios = [a/e for a,e  in zip(alert_series, error_heights)]
+        error_heights = [
+            critical_error.sum(),
+            corruption_error.sum(),
+            silent_error.sum(),
+        ]
+        alert_ratios = [a / e for a, e in zip(alert_series, error_heights)]
         is_log = max(error_heights) > 10 * min(error_heights)
-        
+
         # Making a helper df to plot multi-bars
-        df_plot = pd.DataFrame(  
+        df_plot = pd.DataFrame(
             {
-                "Error class" : error_heights,
-                "Alert signal" : alert_heights,
+                "Error class": error_heights,
+                "Alert signal": alert_heights,
             },
-            index=[CriticalError.name, DataCorruptionError.name, SilentError.name]
+            index=[CriticalError.name, DataCorruptionError.name, SilentError.name],
         )
 
         df_plot.plot.bar(
             ax=ax,
-            log=is_log, 
-            color=[CriticalError.color, DataCorruptionError.color, SilentError.color] 
+            log=is_log,
+            color=[CriticalError.color, DataCorruptionError.color, SilentError.color],
         )
 
         # Insert # of runs on to bar
-        for container in ax.containers: 
+        for container in ax.containers:
             ax.bar_label(container)
         ax.legend()
-        
+
         if is_log:
             ax.set_ylim(bottom=1)
 
@@ -83,4 +87,4 @@ class IbexHwsecCoremarkTools(IbexCoremarkTools):
         fig.tight_layout()
         fig.show()
 
-        return df , fig
+        return df, fig

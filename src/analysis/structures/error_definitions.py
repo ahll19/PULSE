@@ -25,7 +25,7 @@ class Error(ABC):
 
 
 class CriticalError(Error):
-    color = "red"
+    color = "tab:red"
     name = "Critical Error"
     description = (
         "Logs with missing information are considered critical errors. "
@@ -34,7 +34,7 @@ class CriticalError(Error):
 
 
 class DataCorruptionError(Error):
-    color = "orange"
+    color = "tab:orange"
     name = "Data Corruption Error"
     description = (
         "Logs with different values to the golden log are considered "
@@ -43,12 +43,9 @@ class DataCorruptionError(Error):
 
 
 class SilentError(Error):
-    color = "cyan"
+    color = "tab:blue"
     name = "Silent Error"
     description = (
         "Logs where we can't tell the difference from the golden run, "
         "using [COMPARISON_DATA] from the .ini"
     )
-
-
-# TODO: add a method to get colors based on the order of a series or something
