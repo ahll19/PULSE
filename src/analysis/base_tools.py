@@ -240,8 +240,8 @@ class BaseTools:
         n = len(ec)
         rates = ec.value_counts(normalize=True)
         std = ec_onehot.std()
-        z = stats.norm.ppf(confidence) / 2
-        ci = z * std / n**0.5
+        z = stats.norm.ppf(1 - (1 - confidence) / 2)
+        ci = z * std
 
         if not visualize:
             return ci * 2
