@@ -35,11 +35,17 @@ class Data:
         self.timeout = int(config["DATA"]["timeout"])
         self.read_optional = bool(int(config["DATA"]["read_optional"]))
 
+        if self.timeout != -1 and self.timeout < 0:
+            raise ValueError(
+                "Timeout in config is negative, and -1. Check your ini file."
+            )
+
 
 class Debug:
     error_utf_parsing: bool = None
     percent_failed_reads: bool = None
     percent_register_tree_populated: bool = None
+    loading_bar_on_data_parsing: bool = None
 
     def __init__(self, runinfo_path: str) -> None:
         """
@@ -59,6 +65,9 @@ class Debug:
         self.percent_failed_reads = bool(int(config["DEBUG"]["percent_failed_reads"]))
         self.percent_register_tree_populated = bool(
             int(config["DEBUG"]["percent_register_tree_populated"])
+        )
+        self.loading_bar_on_data_parsing = bool(
+            int(config["DEBUG"]["loading_bar_on_data_parsing"])
         )
 
 

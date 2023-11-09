@@ -7,10 +7,10 @@ from anytree import findall as findall_nodes
 import pandas as pd
 import numpy as np
 
-from .run_info import RunInfo
+from .run_info.run_info import RunInfo
 from .data_parser import DataParser
 from .colorprint import ColorPrinter as cp
-from .analysis import SeuLog
+from .analysis.structures.seu_log import SeuLog
 
 
 class Node(RenderTreeNode):
