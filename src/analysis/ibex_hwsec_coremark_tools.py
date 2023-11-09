@@ -1,8 +1,11 @@
-from .base_tools import SeuLog
 from .ibex_coremark_tools import IbexCoremarkTools
-
-from .base_tools import BaseTools, SeuLog
-from .structures import SilentError, DataCorruptionError, CriticalError
+from .structures.seu_log import SeuLog
+from ..data_interface import DataInterface, Node
+from .structures.error_definitions import (
+    SilentError,
+    DataCorruptionError,
+    CriticalError,
+)
 
 from typing import Union, Tuple
 
@@ -13,9 +16,11 @@ import pandas as pd
 class IbexHwsecCoremarkTools(IbexCoremarkTools):
     @classmethod
     def alert_classification(
-        cls, seu_log: SeuLog, golden_log: pd.Series, visualize: bool = False
+        cls, data_interface: DataInterface, node: Node, visualize: bool = False
     ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, plt.Figure]]:
-        error_classifications = cls.error_classification(seu_log, golden_log, False)
+        seu_log = data_interface.get_data_by_node(node)
+        golden_log = data_interface.golden_log
+        error_classifications = cls.error_classification(data_interface, node, False)
 
         critical_error = error_classifications == CriticalError.name
         corruption_error = error_classifications == DataCorruptionError.name

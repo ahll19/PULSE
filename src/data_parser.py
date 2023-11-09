@@ -5,8 +5,9 @@ import sys
 
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
-from .run_info import RunInfo
+from .run_info.run_info import RunInfo
 from .colorprint import ColorPrinter as cp
 
 
@@ -69,12 +70,16 @@ class DataParser:
         for option in [
             run_info.debug.percent_failed_reads,
             run_info.debug.error_utf_parsing,
+            run_info.debug.loading_bar_on_data_parsing,
         ]:
             print_start_read = print_start_read or option
         if print_start_read:
             cp.print_header("Parsing SEU logs...")
 
-        for run in os.listdir(os.path.join(os.getcwd(), run_info.data.directory)):
+        _iter = os.listdir(os.path.join(os.getcwd(), run_info.data.directory))
+        iter = tqdm(_iter) if run_info.debug.loading_bar_on_data_parsing else _iter
+
+        for run in iter:
             if should_timeout:
                 if current_time() - curr_time > timeout:
                     print(f"Timed out after {timeout} seconds")
