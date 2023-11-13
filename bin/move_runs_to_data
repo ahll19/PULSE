@@ -89,6 +89,8 @@ setup_colors
 
 # Scripting part
 # =============================================================================
+mkdir -p "${destination}"
+
 if [[ "${remove}" -eq 1 ]]; then
   # Move all files from source directory to destination directory
   for file in "${source}"/*; do
