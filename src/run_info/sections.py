@@ -157,16 +157,16 @@ class ComparisonData:
             self.entries.append(key)
 
 
-class OptionalData:
-    entries: List[str] = None
-    read_optional: bool = None
+# class OptionalData:
+#     entries: List[str] = None
+#     read_optional: bool = None
 
-    def __init__(self, runinfo_path: str) -> None:
-        self.entries = []
+#     def __init__(self, runinfo_path: str) -> None:
+#         self.entries = []
 
-        config = configparser.ConfigParser()
-        config.read(runinfo_path)
+#         config = configparser.ConfigParser()
+#         config.read(runinfo_path)
 
-        for key, value in config["OPTIONAL_DATA"].items():
-            setattr(self, key, value)
-            self.entries.append(key)
+#         for key, value in config["OPTIONAL_DATA"].items():
+#             setattr(self, key, value)
+#             self.entries.append(key)

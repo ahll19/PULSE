@@ -9,27 +9,55 @@ from tqdm import tqdm
 
 from .run_info.run_info import RunInfo
 from .colorprint import ColorPrinter as cp
+from .analysis.structures.node import Node
+
+# if you want to import optional data of some sort you need to change the import here
+# and also create your own custom class in the structures fodler
+# from .analysis.structures.optional_data.base_optional_data import (
+#     BaseOptionalData as OptionalData,
+# )
+from .analysis.structures.optional_data.ibexhwsec_optional_data import (
+    IbexHwsecOptionalData as OptionalData,
+)
 
 
 class DataParser:
     @classmethod
-    def read_data(cls, run_info: RunInfo) -> Tuple[pd.DataFrame, pd.Series, List[str]]:
+    def read_golden_log(cls, run_info: RunInfo) -> pd.Series:
         """
-        Method called by the data interface to get all data specified by the config
+        Read specifically the golden file.
 
         :param run_info: Configuration object
         :type run_info: RunInfo
-        :return: the seu_log, golden_run, non_register_run objects saved by the data-
-        interface
-        :rtype: Tuple[pd.DataFrame, pd.Series, List[str]]
+        :raises ValueError: Raised if the golden log is unparsable for any reason. If
+        this is the case one should make sure the configuration file patterns matches
+        the log file.
+        :return: Returns a series containing the information in the golden log specified
+        by the configuration file.
+        :rtype: pd.Series
         """
-        golden_log = cls._read_golden_log(run_info)
-        seu_log, non_register_runs = cls._read_all_seu_logs(run_info)
+        log = dict()
+        unfound_info = [info for info in run_info.comparison_data.entries]
+        info_to_find = unfound_info.copy()
+        path = os.path.join(run_info.data.directory, run_info.data.golden)
+        with open(path, "r") as f:
+            lines = f.readlines()
 
-        return seu_log, golden_log, non_register_runs
+        for info in info_to_find:
+            match_pattern = getattr(run_info.comparison_data, info)
+            for line in lines:
+                if match_pattern in line:
+                    log[info] = line.split(match_pattern)[1].strip()
+                    unfound_info.remove(info)
+                    break
+
+        if len(unfound_info) > 0:
+            raise ValueError(f"Could not find {unfound_info} in golden log")
+
+        return pd.Series(log)
 
     @classmethod
-    def _read_all_seu_logs(cls, run_info: RunInfo) -> Tuple[pd.DataFrame, List[str]]:
+    def read_seu_logs(cls, run_info: RunInfo) -> Tuple[pd.DataFrame, List[str]]:
         """
         Finds all runs in the data-directory, and iterates through them to read all
         runs. Note this method calls the _read_single_seu_log() method to parse single
@@ -54,12 +82,11 @@ class DataParser:
 
         info_to_find = run_info.seu_metadata.entries.copy()
         info_to_find += run_info.comparison_data.entries.copy()
-        if run_info.data.read_optional:
-            if not run_info.optional_data.entries:
-                print(err_str)
-                print("Exiting...")
-                sys.exit(1)
-            optional_find = run_info.optional_data.entries.copy()
+        # if run_info.data.read_optional:
+        #     if not run_info.optional_data.entries:
+        #         print(err_str)
+        #         print("Exiting...")
+        #         sys.exit(1)
 
         curr_time = current_time()
         timeout = run_info.data.timeout
@@ -102,19 +129,14 @@ class DataParser:
             n_failed_reads += failed_read
 
             if found_reg:
-                if run_info.data.read_optional:
-                    optional_log_dict, found_all_optionals, _ = cls._read_optional_log(
-                        run_info, path, optional_find
-                    )
-                    log_dict |= optional_log_dict  # append optional dict
                 run_logs[run] = log_dict
             else:
                 non_reg_runs.append(run)
 
         if run_info.debug.percent_failed_reads:
-            cp.print_bold_debug(
-                f"  Parsed {len(run_logs)} logs, percent failed reads: {n_failed_reads / len(run_logs) * 100:.2f}%"
-            )
+            _str = f"  Parsed {len(run_logs)} logs, percent failed reads: "
+            _str += f"{n_failed_reads / len(run_logs) * 100:.2f}%"
+            cp.print_bold_debug(_str)
 
         if print_start_read:
             cp.print_header("Done parsing SEU logs")
@@ -122,40 +144,43 @@ class DataParser:
         return pd.DataFrame(run_logs).T, non_reg_runs
 
     @classmethod
-    def _read_optional_log(
-        cls, run_info: RunInfo, path: str, info_to_find: List[str]
-    ) -> Tuple[Dict[str, str], bool, int]:
-        seu_log_dict = dict()
-        unfound_info = info_to_find.copy()
+    def read_optional_logs(cls, run_info: RunInfo) -> OptionalData:
+        data_dir = os.path.join(os.getcwd(), run_info.data.directory)
+        _runs = [os.path.join(data_dir, dir) for dir in os.listdir(data_dir)]
+        runs = [dir for dir in _runs if os.path.isdir(dir)]
+        curr_time = current_time()
+        timeout = run_info.data.timeout
+        should_timeout = timeout != -1
 
-        try:
-            with open(path, "r") as f:
-                lines = f.readlines()
-        except UnicodeDecodeError as e:
-            if run_info.debug.error_utf_parsing:
-                cp.print_debug(f"  Could not read {path}")
-                cp.print_debug("  " + str(e))
-            return None, False, 1
+        print_start_read = False
+        for option in [
+            run_info.debug.percent_failed_reads,
+            run_info.debug.error_utf_parsing,
+            run_info.debug.loading_bar_on_data_parsing,
+        ]:
+            print_start_read = print_start_read or option
 
-        for info in info_to_find:
-            # This logic has to change if we decide to do non-binary comparisons
-            found_info = False
-            if hasattr(run_info.optional_data, info):
-                match_pattern = getattr(run_info.optional_data, info)
-            else:
-                return None, False, 1
+        optional_data = OptionalData(run_info=run_info)
 
-            for line in lines:
-                if match_pattern in line:
-                    seu_log_dict[info] = line.split(match_pattern)[1].strip()
-                    unfound_info.remove(info)
-                    found_info = True
+        if print_start_read:
+            cp.print_header("Parsing SEU logs for optional data...")
+
+        iter = tqdm(runs) if run_info.debug.loading_bar_on_data_parsing else runs
+        for dir in iter:
+            run = os.path.join(dir, run_info.data.seu)
+            if should_timeout:
+                if current_time() - curr_time > timeout:
+                    print(f"Timed out after {timeout} seconds")
                     break
 
-            if not found_info:
-                seu_log_dict[info] = 0
+            if not run_info.data.seu in os.listdir(dir):
+                continue
 
-        return seu_log_dict, not bool(unfound_info), 0
+            optional_data._read_optional_log(run)
+        if print_start_read:
+            cp.print_header("Done parsing SEU logs for optional data")
+
+        return optional_data
 
     @classmethod
     def _read_single_seu_log(
@@ -192,7 +217,6 @@ class DataParser:
             return None, False, 1
 
         for info in info_to_find:
-            # This logic has to change if we decide to do non-binary comparisons
             found_info = False
             if hasattr(run_info.seu_metadata, info):
                 match_pattern = getattr(run_info.seu_metadata, info)
@@ -210,37 +234,3 @@ class DataParser:
                 seu_log_dict[info] = np.nan
 
         return seu_log_dict, not ("register" in unfound_info), 0
-
-    @classmethod
-    def _read_golden_log(cls, run_info: RunInfo) -> pd.Series:
-        """
-        Read specifically the golden file.
-
-        :param run_info: Configuration object
-        :type run_info: RunInfo
-        :raises ValueError: Raised if the golden log is unparsable for any reason. If
-        this is the case one should make sure the configuration file patterns matches
-        the log file.
-        :return: Returns a series containing the information in the golden log specified
-        by the configuration file.
-        :rtype: pd.Series
-        """
-        log = dict()
-        unfound_info = [info for info in run_info.comparison_data.entries]
-        info_to_find = unfound_info.copy()
-        path = os.path.join(run_info.data.directory, run_info.data.golden)
-        with open(path, "r") as f:
-            lines = f.readlines()
-
-        for info in info_to_find:
-            match_pattern = getattr(run_info.comparison_data, info)
-            for line in lines:
-                if match_pattern in line:
-                    log[info] = line.split(match_pattern)[1].strip()
-                    unfound_info.remove(info)
-                    break
-
-        if len(unfound_info) > 0:
-            raise ValueError(f"Could not find {unfound_info} in golden log")
-
-        return pd.Series(log)
