@@ -1,45 +1,27 @@
-from __future__ import annotations
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 import os
 
 from anytree import Node as RenderTreeNode
 from anytree import findall as findall_nodes
+from tqdm import tqdm
 import pandas as pd
 import numpy as np
 
 from .run_info.run_info import RunInfo
 from .data_parser import DataParser
 from .colorprint import ColorPrinter as cp
+
 from .analysis.structures.seu_log import SeuLog
+from .analysis.structures.node import Node
 
-
-class Node(RenderTreeNode):
-    soc_path: str = None
-
-    def __init__(
-        self,
-        name: str,
-        soc_path: str,
-        parent: Node = None,
-        children: List[Node] = None,
-        **kwargs,
-    ) -> None:
-        """
-        The node objects are part of a tree. Each node can access its children and it
-        its parent, and has some custom attributes associated with it. To see more
-        detailed documentation refer to the documentation of the anytree Python package
-
-        :param name: Name of the node
-        :type name: str
-        :param soc_path: Path to the node in the SoC hiearchy
-        :type soc_path: str
-        :param parent: Parent of the node, defaults to None
-        :type parent: Node, optional
-        :param children: Children of the node, defaults to None
-        :type children: List[Node], optional
-        """
-        super().__init__(name, parent, children, **kwargs)
-        self.soc_path = soc_path
+# if you want to import optional data of some sort you need to change the import here
+# and also create your own custom class in the structures fodler
+# from .analysis.structures.optional_data.base_optional_data import (
+#     BaseOptionalData as OptionalData,
+# )
+from .analysis.structures.optional_data.ibexhwsec_optional_data import (
+    IbexHwsecOptionalData as OptionalData,
+)
 
 
 class DataInterface:
@@ -49,6 +31,7 @@ class DataInterface:
 
     seu_log: SeuLog = None
     golden_log: pd.Series = None
+    optional_data: OptionalData = None
     non_register_runs: List[str] = list()
 
     def __init__(self, run_info: RunInfo) -> None:
@@ -72,14 +55,15 @@ class DataInterface:
         ]:
             print_start_read = print_start_read or option
 
-        self.seu_log, self.golden_log, self.non_register_runs = DataParser.read_data(
-            run_info
-        )
+        self.seu_log, self.non_register_runs = DataParser.read_seu_logs(run_info)
+        self.golden_log = DataParser.read_golden_log(run_info)
 
         if print_start_read:
             cp.print_header("Building register tree")
 
         self._generate_register_tree(run_info)
+        self.seu_log = SeuLog(self.seu_log)
+        self.seu_log.name = self.root.name
 
         if not run_info.debug.percent_register_tree_populated:
             if print_start_read:
@@ -100,6 +84,9 @@ class DataInterface:
         cp.print_debug(f"  {unpop_percent:.2f}% of the register tree is unpopulated")
         cp.print_header("Built register tree")
 
+        if run_info.data.read_optional:
+            self.optional_data = DataParser.read_optional_logs(run_info)
+
     def get_node_by_path(self, path: str) -> Union[Node, None]:
         """
         Specify an SoC path, e.g. wrap.u_top.regfile.reg[2], and get the node
@@ -119,6 +106,9 @@ class DataInterface:
         if len(nodes) == 0:
             return None
 
+        if len(nodes) == 1:
+            return nodes[0]
+
         node_depths = [node.depth for node in nodes]
 
         return nodes[node_depths.index(min(node_depths))]
@@ -134,7 +124,7 @@ class DataInterface:
         """
         return findall_nodes(self.root, filter_=lambda node: node.name == name)
 
-    def get_data_by_node(self, node: Node) -> SeuLog:
+    def get_seu_log_by_node(self, node: Node) -> SeuLog:
         """
         Use this method to query the full SeuLog for only data pertaining to a given
         node. All data which corresponds to this node, and its ancestors, is returned.

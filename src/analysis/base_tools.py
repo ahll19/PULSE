@@ -27,7 +27,7 @@ class BaseTools:
         object is used to compare against. For definitions of each error see the
         error_definitions.py file, or print out each error object from that same file.
         """
-        seu_log = data_interface.get_data_by_node(node)
+        seu_log = data_interface.get_seu_log_by_node(node)
         golden_log = data_interface.golden_log
 
         compare_cols = seu_log.columns.intersection(golden_log.index)
@@ -100,7 +100,7 @@ class BaseTools:
         """
         assert window_size % 2 == 0, "window_size in windowed_error_rate must be even"
 
-        seu_log = data_interface.get_data_by_node(node)
+        seu_log = data_interface.get_seu_log_by_node(node)
         error_classifications = cls.error_classification(
             data_interface, node, visualize=False
         )
@@ -224,7 +224,7 @@ class BaseTools:
         """
         Calculates the confidence intervals for the given error rate estimates.
         """
-        seu_log = data_interface.get_data_by_node(node)
+        seu_log = data_interface.get_seu_log_by_node(node)
 
         ec = BaseTools.error_classification(data_interface, node, visualize=False)
         ec_onehot = pd.get_dummies(ec)
