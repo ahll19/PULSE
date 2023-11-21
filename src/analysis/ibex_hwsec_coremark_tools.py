@@ -18,16 +18,24 @@ class IbexHwsecCoremarkTools(IbexCoremarkTools):
     def alert_classification(
         cls, data_interface: DataInterface, node: Node, visualize: bool = False
     ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, plt.Figure]]:
-        seu_log = data_interface.get_data_by_node(node)
-        golden_log = data_interface.golden_log
+        seu_log = data_interface.get_seu_log_by_node(node)
         error_classifications = cls.error_classification(data_interface, node, False)
+
+        # get optional data related to this method
+        node_runs = list(seu_log.index)
+        node_optional = data_interface.optional_data.get_data_by_runs(node_runs)
+
+        # generate a df with boolean map where true indicates alert raised
+        node_optional_df = pd.DataFrame.from_dict(
+            {seu_run: alerts is not None for seu_run, alerts in node_optional.items()},
+            orient="index",
+            columns=["alert"],
+        )
+        alert_series = node_optional_df["alert"].astype(int)
 
         critical_error = error_classifications == CriticalError.name
         corruption_error = error_classifications == DataCorruptionError.name
         silent_error = error_classifications == SilentError.name
-
-        alert_series = seu_log["alert_val"] != 0
-        alert_series = alert_series.astype(int)
 
         alert_heights = [
             alert_series[critical_error].sum(),

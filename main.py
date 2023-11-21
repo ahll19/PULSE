@@ -36,22 +36,22 @@ if __name__ == "__main__":
     node_runs = list(node_data.index)
     # opt_node = data_interface.optional_data.get_data_by_runs(node_runs)
 
-    # _ = BaseTools.error_classification(data_interface, root, visualize=True)
+    _ = BaseTools.error_classification(data_interface, root, visualize=True)
 
-    # _ = BaseTools.windowed_error_rate(
-    #     data_interface, node, "injection_cycle", visualize=True, window_size=100
-    # )
-    # _ = BaseTools.error_classification_confidence(data_interface, node, visualize=True)
-    # _ = BaseTools.expected_num_multi_injection_runs(
-    #     500_000, 2200, [100, 100_000], visualize=True
-    # )
+    _ = BaseTools.windowed_error_rate(
+        data_interface, node, "injection_cycle", visualize=True, window_size=100
+    )
+    _ = BaseTools.error_classification_confidence(data_interface, node, visualize=True)
+    _ = BaseTools.expected_num_multi_injection_runs(
+        500_000, 2200, [100, 100_000], visualize=True
+    )
 
-    # _ = IbexCoremarkTools.stacked_register_error_class(
-    #     data_interface, node, visualize=True
-    # )
+    _ = IbexCoremarkTools.stacked_register_error_class(
+        data_interface, node, visualize=True
+    )
 
-    # _ = IbexHwsecCoremarkTools.alert_classification_and_error_counts(
-    #     data_interface, node, visualize=True
-    # )
+    _ = IbexHwsecCoremarkTools.alert_classification(
+        data_interface, node, visualize=True
+    )
 
     _ = input()

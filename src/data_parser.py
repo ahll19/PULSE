@@ -144,13 +144,12 @@ class DataParser:
         return pd.DataFrame(run_logs).T, non_reg_runs
 
     @classmethod
-    def read_optional_logs(cls, run_info: RunInfo) -> OptionalData:
+    def read_optional_logs(
+        cls, run_info: RunInfo, seu_parsed_runs: List[str]
+    ) -> OptionalData:
         data_dir = os.path.join(os.getcwd(), run_info.data.directory)
-        _runs = [os.path.join(data_dir, dir) for dir in os.listdir(data_dir)]
+        _runs = [os.path.join(data_dir, dir) for dir in seu_parsed_runs]
         runs = [dir for dir in _runs if os.path.isdir(dir)]
-        curr_time = current_time()
-        timeout = run_info.data.timeout
-        should_timeout = timeout != -1
 
         print_start_read = False
         for option in [
@@ -168,10 +167,6 @@ class DataParser:
         iter = tqdm(runs) if run_info.debug.loading_bar_on_data_parsing else runs
         for dir in iter:
             run = os.path.join(dir, run_info.data.seu)
-            if should_timeout:
-                if current_time() - curr_time > timeout:
-                    print(f"Timed out after {timeout} seconds")
-                    break
 
             if not run_info.data.seu in os.listdir(dir):
                 continue
