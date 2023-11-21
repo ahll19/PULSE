@@ -85,7 +85,9 @@ class DataInterface:
         cp.print_header("Built register tree")
 
         if run_info.data.read_optional:
-            self.optional_data = DataParser.read_optional_logs(run_info)
+            self.optional_data = DataParser.read_optional_logs(
+                run_info, list(self.seu_log.index)
+            )
 
     def get_node_by_path(self, path: str) -> Union[Node, None]:
         """
