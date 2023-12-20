@@ -53,6 +53,7 @@ class IbexCoremarkTools(BaseTools):
 
         plt_df = df.copy()
         plt_df.index = plt_df.index.str.split(".").str[-1]
+        plt_df.index = plt_df.index.map(regfile_name_map_ibex)
         plt_df.sort_values(by=CriticalError.name, inplace=True, ascending=False)
 
         fig, ax = plt.subplots()
@@ -72,3 +73,39 @@ class IbexCoremarkTools(BaseTools):
         fig.show()
 
         return df, fig
+
+regfile_name_map_ibex = {
+    "rf_reg[31]": "zero",
+    "rf_reg[30]": "ra",
+    "rf_reg[29]": "sp",
+    "rf_reg[28]": "gp",
+    "rf_reg[27]": "tp",
+    "rf_reg[26]": "t0",
+    "rf_reg[25]": "t1",
+    "rf_reg[24]": "t2",
+    "rf_reg[23]": "s0",
+    "rf_reg[22]": "s1",
+    "rf_reg[21]": "a0",
+    "rf_reg[20]": "a1",
+    "rf_reg[19]": "a2",
+    "rf_reg[18]": "a3",
+    "rf_reg[17]": "a4",
+    "rf_reg[16]": "a5",
+    "rf_reg[15]": "a6",
+    "rf_reg[14]": "a7",
+    "rf_reg[13]": "s2",
+    "rf_reg[12]": "s3",
+    "rf_reg[11]": "s4",
+    "rf_reg[10]": "s5",
+    "rf_reg[9]": "s6",
+    "rf_reg[8]": "s7",
+    "rf_reg[7]": "s8",
+    "rf_reg[6]": "s9",
+    "rf_reg[5]": "s10",
+    "rf_reg[4]": "s11",
+    "rf_reg[3]": "t3",
+    "rf_reg[2]": "t4",
+    "rf_reg[1]": "t5",
+    "rf_reg[0]": "t6"
+}
+

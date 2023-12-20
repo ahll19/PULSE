@@ -6,11 +6,6 @@ from src.run_info.run_info import RunInfo
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import scipy.stats as stats
-from scipy.special import comb
-from anytree.exporter import DotExporter
 
 
 def visualization_setup():
