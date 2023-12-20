@@ -8,7 +8,6 @@ import scipy.stats as stats
 
 
 from ..data_interface import DataInterface, Node
-from ..colorprint import ColorPrinter
 from .structures.error_definitions import (
     SilentError,
     DataCorruptionError,

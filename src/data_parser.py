@@ -9,7 +9,6 @@ from tqdm import tqdm
 
 from .run_info.run_info import RunInfo
 from .colorprint import ColorPrinter as cp
-from .analysis.structures.node import Node
 
 # if you want to import optional data of some sort you need to change the import here
 # and also create your own custom class in the structures fodler

@@ -1,9 +1,9 @@
-from typing import List, Dict, Tuple
+from typing import Dict, Tuple
 import re
 
 import pandas as pd
 
-from .base_optional_data import BaseOptionalData, Node, RunInfo
+from .base_optional_data import BaseOptionalData, RunInfo
 
 
 class IbexHwsecOptionalData(BaseOptionalData):

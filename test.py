@@ -5,11 +5,6 @@ from src.analysis.structures.error_definitions import SilentError
 from src.colorprint import ColorPrinter as cp
 
 import pandas as pd
-import numpy as np
-from tqdm import tqdm
-
-import os
-
 
 run_info_path = "src/run_info/ibex_hwsec_coremark.ini"
 number_of_registers = 32
@@ -22,7 +17,7 @@ seu_injection_flip_register = True
 inject_intervals_path = "/home/anders/Git/prunev/golden_trace_encoding.csv"
 inject_intervals_index_column = "Cycle"
 
-save_false_negatives = True
+save_false_negatives = False
 save_injection_interval_assumption = True
 
 if __name__ == "__main__":
@@ -32,8 +27,23 @@ if __name__ == "__main__":
     run_info = RunInfo(run_info_path)
     data_interface = DataInterface(run_info)
 
+    def time_fixer(x: str):
+        x = int(x)
+        mod = x % 5
+        if mod == 0:
+            return (x + 20) / 10 - 1
+        else:
+            return (x + (5 - mod) + 20) / 10 - 1
+
+    nans = data_interface.seu_log["injection_cycle"].isna()
+    data_interface.seu_log["injection_cycle"] = data_interface.seu_log[
+        "injection_cycle"
+    ][~nans].apply(time_fixer)
+
     node = data_interface.get_node_by_name(register_file_name)[0]
     node_seu_logs = data_interface.get_seu_log_by_node(node)
+    cp.print_bold(f"Number of SEU logs on register file: {len(node_seu_logs)}")
+    print()
     error_classification = BaseTools.error_classification(
         data_interface, node, visualize=False
     )
@@ -47,7 +57,9 @@ if __name__ == "__main__":
         register = "x" + str(
             (number_of_registers - 1) - int(row["register"].split("[")[1].strip("]"))
         )
-        injection_cycle = int(float(row[seu_injection_cycle_column]))
+        injection_cycle = int(
+            float(row[seu_injection_cycle_column])
+        )  # TODO: rounding of half cycle happens here! does it need a change?
         bit_number = int(row[bit_number_column])
         seed = int(row[seed_column].split("\x1b")[0])
         error_class = error_classification.loc[run_name]
@@ -84,10 +96,10 @@ if __name__ == "__main__":
         lambda row: not row["is_silent"] and not row["is_sensitive"], axis=1
     )
 
-    cp.print_bold("False negative check:")
-    print(false_negative_check_df["is_false_negative"].value_counts())
+    cp.print_bold("Non-silent error in non-sensitive injections check:")
     if false_negative_check_df["is_false_negative"].any():
         cp.print_fail("Test failed. Some non-sensitive injections are not silent.")
+        print(false_negative_check_df["is_false_negative"].value_counts())
     else:
         cp.print_ok("Test passed. All non-sensitive injections are silent.")
     print("")
@@ -96,6 +108,17 @@ if __name__ == "__main__":
         false_negative_check_df[false_negative_check_df["is_false_negative"]][
             ["register", "injection_cycle", "seed"]
         ].to_csv("test/false_negatives.csv")
+
+    f1 = checking_df.apply(
+        lambda row: not row["is_silent"] and not row["is_sensitive"], axis=1
+    )
+    f2 = checking_df.apply(
+        lambda row: not row["is_silent"] and row["is_sensitive"], axis=1
+    )
+    f3 = checking_df.apply(
+        lambda row: row["is_silent"] and not row["is_sensitive"], axis=1
+    )
+    f4 = checking_df.apply(lambda row: row["is_silent"] and row["is_sensitive"], axis=1)
     # ==================================================================================
 
     # ==================================================================================
@@ -144,3 +167,5 @@ if __name__ == "__main__":
         cp.print_fail(
             "Test failed. Some equivalent injections are not of the same error class."
         )
+
+    _ = ""

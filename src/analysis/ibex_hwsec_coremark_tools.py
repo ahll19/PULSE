@@ -1,5 +1,4 @@
 from .ibex_coremark_tools import IbexCoremarkTools
-from .structures.seu_log import SeuLog
 from ..data_interface import DataInterface, Node
 from .structures.error_definitions import (
     SilentError,
