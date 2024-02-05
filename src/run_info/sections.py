@@ -36,6 +36,8 @@ class Data:
         self.timeout = int(config["DATA"]["timeout"])
         self.read_optional = bool(int(config["DATA"]["read_optional"]))
         self.cpu_cyles = int(config["DATA"]["cpu_cycles"])
+        # vpi_bits added manually, since in some runs we didnt print vpi signal from the simulations
+        self.vpi_bits = int(config["DATA"]["vpi_bits"]) 
 
         if self.timeout != -1 and self.timeout < 0:
             raise ValueError(

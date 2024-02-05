@@ -51,7 +51,7 @@ class BaseError(ABC):
 
 
 class CriticalError(BaseError):
-    color = "tab:red"
+    color = "royalblue"
     name = "SEFI"
     description = (
         "Logs with missing information are considered critical errors or"
@@ -61,7 +61,7 @@ class CriticalError(BaseError):
 
 
 class DataCorruptionError(BaseError):
-    color = "tab:orange"
+    color = "lightsteelblue"
     name = "SDC"
     description = (
         "Logs with different values to the golden log are considered "
@@ -70,7 +70,7 @@ class DataCorruptionError(BaseError):
 
 
 class SilentError(BaseError):
-    color = "tab:blue"
+    color = "cornflowerblue"
     name = "NE"
     description = (
         "Logs where we can't tell the difference from the golden run, "

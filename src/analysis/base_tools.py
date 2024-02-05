@@ -172,45 +172,50 @@ class BaseTools:
             c,
             c=CriticalError.color,
             label=CriticalError.name,
-            marker=".",
-            markersize=mark_size,
+            # marker=".",
+            # mfc=CriticalError.color,
+            # markersize=mark_size,
         )
-        ax.fill_between(cycle, cl, cu, color=CriticalError.color, alpha=alpha)
+        # ax.fill_between(cycle, cl, cu, color="red", alpha=alpha)
 
         ax.plot(
             cycle,
             d,
             c=DataCorruptionError.color,
             label=DataCorruptionError.name,
-            marker=".",
-            markersize=mark_size,
+            # marker=".",
+            # mfc=DataCorruptionError.color,
+            # markersize=mark_size,
         )
-        ax.fill_between(cycle, dl, du, color=DataCorruptionError.color, alpha=alpha)
+        # ax.fill_between(cycle, dl, du, color='blue', alpha=alpha)
 
-        ax.plot(
-            cycle,
-            s,
-            c=SilentError.color,
-            label=SilentError.name,
-            marker=".",
-            markersize=mark_size,
-        )
-        ax.fill_between(cycle, sl, su, color=SilentError.color, alpha=alpha)
+        # ax.plot(
+        #     cycle,
+        #     s,
+        #     c=SilentError.color,
+        #     label=SilentError.name,
+        #     marker=".",
+        #     mfc=SilentError.color,
+        #     markersize=mark_size,
+        # )
+        # ax.fill_between(cycle, sl, su, color=SilentError.color, alpha=alpha)
 
-        ax.fill_between(cycle[:ws_2], y_lims[0], y_lims[1], color="grey", alpha=alpha)
-        ax.fill_between(
-            cycle[n - ws_2 :],
-            y_lims[0],
-            y_lims[1],
-            color="grey",
-            alpha=alpha,
-            label=r"$\omega/2$",
-        )
+        # ax.fill_between(cycle[:ws_2], y_lims[0], y_lims[1], color="grey", alpha=alpha)
+        # ax.fill_between(
+        #     cycle[n - ws_2 :],
+        #     y_lims[0],
+        #     y_lims[1],
+        #     color="grey",
+        #     alpha=alpha,
+        #     label=r"$\omega/2$",
+        # )
 
-        ax.set_ylim(y_lims)
-        fig.suptitle(r"$\omega=$" + str(window_size))
-        fig.legend()
+        # ax.set_ylim(y_lims)
+        # fig.suptitle(r"$\omega=$" + str(window_size))
+        # fig.legend()
+
         fig.show()
+        return df, conf_lower, conf_upper, fig
 
     @classmethod
     def error_classification_confidence(
@@ -219,7 +224,7 @@ class BaseTools:
         node: Node,
         confidence: float = 0.95,
         visualize: bool = False,
-    ) -> Union[pd.Series, Tuple[pd.Series, plt.Figure]]:
+    ) -> Union[Tuple[pd.Series, pd.Series], Tuple[pd.Series, plt.Figure]]:
         """
         Calculates the confidence intervals for the given error rate estimates.
         """
@@ -234,7 +239,7 @@ class BaseTools:
         ci = z * std / np.sqrt(n)
 
         if not visualize:
-            return ci * 2
+            return ci * 2, std
 
         name_list = [CriticalError.name, DataCorruptionError.name, SilentError.name]
         fig, ax = plt.subplots()
