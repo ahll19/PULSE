@@ -51,27 +51,28 @@ class BaseError(ABC):
 
 
 class CriticalError(BaseError):
-    color = "tab:red"
-    name = "Critical Error"
+    color = "royalblue"
+    name = "SEFI"
     description = (
-        "Logs with missing information are considered critical errors. "
+        "Logs with missing information are considered critical errors or"
+        "Single Event Functional Interrupts (SEFI)."
         "(NaN in the seu_log dataframe)"
     )
 
 
 class DataCorruptionError(BaseError):
-    color = "tab:orange"
-    name = "Data Corruption Error"
+    color = "lightsteelblue"
+    name = "SDC"
     description = (
         "Logs with different values to the golden log are considered "
-        "data corruption errors"
+        "data corruption errors (SDC)"
     )
 
 
 class SilentError(BaseError):
-    color = "tab:blue"
-    name = "Silent Error"
+    color = "cornflowerblue"
+    name = "NE"
     description = (
         "Logs where we can't tell the difference from the golden run, "
-        "using [COMPARISON_DATA] from the .ini"
+        "using [COMPARISON_DATA] from the .ini, also called No Effect (NE)"
     )

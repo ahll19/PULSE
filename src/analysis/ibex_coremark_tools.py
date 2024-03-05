@@ -15,7 +15,7 @@ from .structures.error_definitions import (
 class IbexCoremarkTools(BaseTools):
     @classmethod
     def stacked_register_error_class(
-        cls, data_interface: DataInterface, node: Node, visualize: bool = False
+        cls, data_interface: DataInterface, node: Node, visualize: bool = False, filter: bool = False
     ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, plt.figure]]:
         """
         This method is only supposed to be called on the rf_regfile_i node-data of the
@@ -28,6 +28,8 @@ class IbexCoremarkTools(BaseTools):
         The most usefel part of this method is visualizing and comparing the
         distribution of errors visualize for all unique ancestors of a node (in the
         intended case, each register of the core)
+
+        :param filter: If True, remove zero register from plot
         """
         children: Dict[str, Node] = {child.name: child for child in node.children}
 
@@ -54,6 +56,9 @@ class IbexCoremarkTools(BaseTools):
         plt_df = df.copy()
         plt_df.index = plt_df.index.str.split(".").str[-1]
         plt_df.index = plt_df.index.map(regfile_name_map_ibex)
+        if filter:
+            # remove zero register from plot
+            plt_df.drop("zero", inplace=True)
         plt_df.sort_values(by=CriticalError.name, inplace=True, ascending=False)
 
         fig, ax = plt.subplots()
@@ -61,14 +66,15 @@ class IbexCoremarkTools(BaseTools):
         plt_df.plot.bar(
             stacked=True,
             ax=ax,
-            color=[CriticalError.color, DataCorruptionError.color, SilentError.color],
+            color=[SilentError.color, DataCorruptionError.color, CriticalError.color]
+
         )
 
         ax.set_title(f"Error Classification: {node.name}")
         ax.set_ylabel("Proportion of errors")
         ax.set_xlabel("Register")
 
-        plt.xticks(rotation=45, ha="right")
+        plt.xticks(rotation=45)
 
         fig.show()
 

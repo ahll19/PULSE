@@ -2,6 +2,8 @@ data/*
 .data/*
 data*/
 plots/*
+cache/
+*.tar.gz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

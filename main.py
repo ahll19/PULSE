@@ -33,9 +33,9 @@ if __name__ == "__main__":
 
     _ = BaseTools.error_classification(data_interface, root, visualize=True)
 
-    _ = BaseTools.windowed_error_rate(
-        data_interface, node, "injection_cycle", visualize=True, window_size=100
-    )
+    # _ = BaseTools.windowed_error_rate(
+    #     data_interface, node, "injection_cycle", visualize=True, window_size=100
+    # )
     _ = BaseTools.error_classification_confidence(data_interface, node, visualize=True)
     _ = BaseTools.expected_num_multi_injection_runs(
         500_000, 2200, [100, 100_000], visualize=True

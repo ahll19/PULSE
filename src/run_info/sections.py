@@ -10,6 +10,7 @@ class Data:
     timeout: int = None
     max_ram_usage: int = None
     max_number_logs: int = None
+    cpu_cycles : int = None
 
     def __init__(self, runinfo_path: str) -> None:
         """
@@ -34,6 +35,9 @@ class Data:
         self.vpi = str(config["DATA"]["vpi"])
         self.timeout = int(config["DATA"]["timeout"])
         self.read_optional = bool(int(config["DATA"]["read_optional"]))
+        self.cpu_cyles = int(config["DATA"]["cpu_cycles"])
+        # vpi_bits added manually, since in some runs we didnt print vpi signal from the simulations
+        self.vpi_bits = int(config["DATA"]["vpi_bits"]) 
 
         if self.timeout != -1 and self.timeout < 0:
             raise ValueError(
