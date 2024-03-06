@@ -19,16 +19,18 @@ def visualization_setup():
 if __name__ == "__main__":
     visualization_setup()
 
-    runinfo = RunInfo("src/run_info/ibex_hwsec_coremark.ini")
+    runinfo = RunInfo("src/run_info/ibex_coremark.ini")
     data_interface = DataInterface(runinfo)
 
     golden = data_interface.golden_log
-    node = data_interface.get_node_by_name("register_file_i")[0]
+    # node = data_interface.get_node_by_name("register_file_i")[0]
     root = data_interface.root
-    node_data = data_interface.get_seu_log_by_node(node)
+    # node_data = data_interface.get_seu_log_by_node(node)
     root_data = data_interface.get_seu_log_by_node(root)
+    
+    print(root_data)
 
-    node_runs = list(node_data.index)
+    # node_runs = list(node_data.index)
     # opt_node = data_interface.optional_data.get_data_by_runs(node_runs)
 
     _ = BaseTools.error_classification(data_interface, root, visualize=True)
@@ -36,17 +38,17 @@ if __name__ == "__main__":
     # _ = BaseTools.windowed_error_rate(
     #     data_interface, node, "injection_cycle", visualize=True, window_size=100
     # )
-    _ = BaseTools.error_classification_confidence(data_interface, node, visualize=True)
-    _ = BaseTools.expected_num_multi_injection_runs(
-        500_000, 2200, [100, 100_000], visualize=True
-    )
+    # _ = BaseTools.error_classification_confidence(data_interface, node, visualize=True)
+    # _ = BaseTools.expected_num_multi_injection_runs(
+    #     500_000, 2200, [100, 100_000], visualize=True
+    # )
 
-    _ = IbexCoremarkTools.stacked_register_error_class(
-        data_interface, node, visualize=True
-    )
+    # _ = IbexCoremarkTools.stacked_register_error_class(
+    #     data_interface, node, visualize=True
+    # )
 
-    _ = IbexHwsecCoremarkTools.alert_classification(
-        data_interface, node, visualize=True
-    )
+    # _ = IbexHwsecCoremarkTools.alert_classification(
+    #     data_interface, node, visualize=True
+    # )
 
     _ = input()
