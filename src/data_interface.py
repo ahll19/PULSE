@@ -166,7 +166,7 @@ class DataInterface:
     def _generate_register_tree(self, run_info: RunInfo) -> None:
         """
         Uses the VPI entry in the config file (*.ini) to generate the register tree.
-        This tree represents the SoC hiearchy
+        This tree represents the SoC hierarchy
 
         :param run_info: Configuration object
         :type run_info: RunInfo
