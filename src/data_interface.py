@@ -163,7 +163,7 @@ class DataInterface:
 
         return runs
 
-    def append_seu_data(self, append_data: SeuLog, append_non_register_runs: List[str]):
+    def append_seu_log(self, append_data: SeuLog, append_non_register_runs: List[str]):
         """
         This method can append the new data to existing data which might have been generated using a 
         different simulation formats. This method is useful when you have multiple simulations runs 
@@ -176,6 +176,13 @@ class DataInterface:
         self.non_register_runs += append_non_register_runs
 
         cp.print_header(f"Appending SeuLog data.")
+
+    def zero_filter_seu_log(self, filter = r'\[31\]'):
+        """
+        Filter out the data that contains the filter string
+        :param filter: The string to filter out. Default filters out the zero GPR
+        """
+        self.seu_log = self.seu_log[self.seu_log['register'].str.contains(filter) == False]
     
     def _generate_register_tree(self, run_info: RunInfo) -> None:
         """
