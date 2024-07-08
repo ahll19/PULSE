@@ -163,6 +163,20 @@ class DataInterface:
 
         return runs
 
+    def append_seu_data(self, append_data: SeuLog, append_non_register_runs: List[str]):
+        """
+        This method can append the new data to existing data which might have been generated using a 
+        different simulation formats. This method is useful when you have multiple simulations runs 
+        for the same DUT, but the simulator output has been changed.
+
+        :param append_data: Data to append. Hast to be parsed by DataParser
+        :param append_non_register_runs: List of runs where no register entry was parsed
+        """
+        self.seu_log = pd.concat([self.seu_log, append_data])
+        self.non_register_runs += append_non_register_runs
+
+        cp.print_header(f"Appending SeuLog data.")
+    
     def _generate_register_tree(self, run_info: RunInfo) -> None:
         """
         Uses the VPI entry in the config file (*.ini) to generate the register tree.
