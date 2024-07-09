@@ -309,3 +309,39 @@ class BaseTools:
         fig.suptitle(r"Number of expected re-samples given $M$ runs")
 
         return res, fig
+
+    @classmethod
+    def register_error_props(
+        cls, data_interface: DataInterface, node_list: [Node]
+    ) -> pd.DataFrame:
+        """
+        A method that takes a list of nodes and returns a dataframe with the proportion of
+        errors for each node. If being passed all the leaf nodes, i.e. the injected registers,
+        this can be used to discover the most sensitive registers in the design.
+        """ 
+        
+        nodes: Dict[str, Node] = {node.soc_path: node for node in node_list}
+
+        error_classes = {
+            name: cls.error_classification(data_interface, child_node, False)
+            for name, child_node in nodes.items()
+        }
+
+        value_counts = {
+            name: error_class.value_counts()
+            for name, error_class in error_classes.items()
+        }
+
+        proportions = {
+            name: value_count / value_count.sum()
+            for name, value_count in value_counts.items()
+        }
+
+        sums = {
+            name: value_count.sum()
+            for name, value_count in value_counts.items()
+        }
+        u
+        df = pd.DataFrame(proportions).fillna(0).T
+        df['Total'] = pd.Series(sums)
+        return df
