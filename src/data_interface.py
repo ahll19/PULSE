@@ -2,6 +2,7 @@ from typing import List, Tuple, Union
 import os
 
 from anytree import findall as findall_nodes
+from anytree import RenderTree, AsciiStyle, PreOrderIter 
 import pandas as pd
 
 from .run_info.run_info import RunInfo
@@ -177,13 +178,17 @@ class DataInterface:
 
         cp.print_header(f"Appending SeuLog data.")
 
-    def zero_filter_seu_log(self, filter = r'\[31\]'):
+    def filter_seu_log(self, filter = r'\[31\]'):
         """
         Filter out the data that contains the filter string
         :param filter: The string to filter out. Default filters out the zero GPR
         """
+        cp.print_header(f"Filtering out data that contains '{filter}'")
+        size_before = len(self.seu_log)
         self.seu_log = self.seu_log[self.seu_log['register'].str.contains(filter) == False]
-    
+        size_after = len(self.seu_log)
+        cp.print_debug(f"Filtered out {size_before - size_after} entries")
+         
     def _generate_register_tree(self, run_info: RunInfo) -> None:
         """
         Uses the VPI entry in the config file (*.ini) to generate the register tree.
