@@ -212,9 +212,12 @@ class DataParser:
                 lines_seu = f_seu.readlines()
         except UnicodeDecodeError as e:
             if run_info.debug.error_utf_parsing:
-                cp.print_debug(f"  Could not read {path} or {sim_info_path}!")
+                cp.print_debug(f"  Unicode error {path} or {sim_info_path}!")
                 cp.print_debug("  " + str(e))
-            return None, False, 1
+                cp.print_debug("   Rereading with errors='replace'")
+            with open(path, "r", errors='replace') as f, open(sim_info_path, "r", errors='replace') as f_seu:
+                lines = f.readlines()
+                lines_seu = f_seu.readlines()
 
         for info in info_to_find:
             found_info = False
