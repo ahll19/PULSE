@@ -341,7 +341,7 @@ class BaseTools:
             name: value_count.sum()
             for name, value_count in value_counts.items()
         }
-        u
+        
         df = pd.DataFrame(proportions).fillna(0).T
         df['Total'] = pd.Series(sums)
         return df
