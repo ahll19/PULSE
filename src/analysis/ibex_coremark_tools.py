@@ -1,3 +1,4 @@
+from anytree import RenderTree, AsciiStyle, PreOrderIter 
 from typing import Tuple, Union, Dict
 
 import matplotlib.pyplot as plt
@@ -79,6 +80,66 @@ class IbexCoremarkTools(BaseTools):
         fig.show()
 
         return df, fig
+    
+    @classmethod
+    def critical_signals(
+        cls, data_interface: DataInterface, start_node: Node, n_signals: int = 20, visualize: bool = False, 
+        clean_indexes: bool = True
+    ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, plt.figure]]:
+        """
+        This method is used to find the most critical signals in the Coremark Ibex runs.
+        It does this by finding each leaf node, i.e. the signals on which injections are done, 
+        of the root node that was passed. Then the proportion of errors for each leaf node are calculated. 
+
+        :param n_signals: The number of signals to return in the plot
+        :param start_node: The node to start the search from
+        :param visualize: If True, plot the results
+        :return: A DataFrame of the most critical signals
+        """
+
+        # get all leaf nodes
+        leaf_nodes = [node for node in PreOrderIter(start_node) if not node.children]
+
+        # calculate error proportions
+        node_err_props = BaseTools.register_error_props(data_interface, leaf_nodes) 
+        
+        if not visualize:
+            return node_error_props
+        
+        fig, ax = plt.subplots()
+
+        data_order = [CriticalError, DataCorruptionError, SilentError]
+        plt_df = node_err_props.sort_values(by=CriticalError.name, ascending=False)
+        plt_df = plt_df.head(n_signals)
+        plt_df = plt_df[[error_class.name for error_class in data_order]]
+
+        if clean_indexes:
+            # filter out index names for a bunch of stuff
+            plt_df.index = plt_df.index.map(lambda x: '.'.join(x.split('.')[6:]))
+            plt_df.index = plt_df.index.str.replace('_i.', '.')
+            plt_df.index = plt_df.index.str.replace('_q', '')
+            plt_df.index = plt_df.index.str.replace('_o', '')
+            plt_df.index = plt_df.index.str.replace('.gen_prefetch_buffer', '')
+
+            def replace_substrings(label):
+                for key in regfile_name_map_ibex:
+                    if key in label:
+                        label = label.replace(key, regfile_name_map_ibex[key])
+                return label
+
+            # Apply the custom function to filter each index label
+            plt_df.index = plt_df.index.map(replace_substrings)
+
+        plt_df.plot.barh(stacked=True, ax=ax, color=[error_class.color for error_class in data_order] )
+
+        ax.invert_yaxis()
+        ax.set_xlim(0, 1)
+        ax.legend(loc='lower right', framealpha=1)
+        
+        ax.set_xlabel("Proportion of errors")
+        fig.show()
+
+        return node_err_props, fig
 
 regfile_name_map_ibex = {
     "rf_reg[31]": "zero",

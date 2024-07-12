@@ -312,12 +312,31 @@ class BaseTools:
 
     @classmethod
     def register_error_props(
-        cls, data_interface: DataInterface, node_list: [Node]
+        cls, data_interface: DataInterface, node_list: [Node], add_vals: bool = False
     ) -> pd.DataFrame:
         """
         A method that takes a list of nodes and returns a dataframe with the proportion of
         errors for each node. If being passed all the leaf nodes, i.e. the injected registers,
         this can be used to discover the most sensitive registers in the design.
+        """ 
+        
+        df_vals = cls.register_error_vals(data_interface, node_list)
+
+        totals = df_vals.sum(axis=1)
+        df = df_vals.div(totals, axis=0)
+
+        if add_vals: 
+            return df.concat(df_vals)
+        else:
+            return df
+
+    @classmethod
+    def register_error_vals(
+        cls, data_interface: DataInterface, node_list: [Node]
+    ) -> pd.DataFrame:
+        """
+        A method that takes a list of nodes and returns a dataframe with the total values of  
+        each error outcome for each passed node. 
         """ 
         
         nodes: Dict[str, Node] = {node.soc_path: node for node in node_list}
@@ -327,21 +346,10 @@ class BaseTools:
             for name, child_node in nodes.items()
         }
 
-        value_counts = {
+        error_counts = {
             name: error_class.value_counts()
             for name, error_class in error_classes.items()
         }
 
-        proportions = {
-            name: value_count / value_count.sum()
-            for name, value_count in value_counts.items()
-        }
-
-        sums = {
-            name: value_count.sum()
-            for name, value_count in value_counts.items()
-        }
-        
-        df = pd.DataFrame(proportions).fillna(0).T
-        df['Total'] = pd.Series(sums)
+        df = pd.DataFrame(error_counts).fillna(0).T
         return df
