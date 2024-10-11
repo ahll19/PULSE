@@ -117,12 +117,16 @@ class DataParser:
 
             if not run_info.data.seu in os.listdir(dir_path):
                 continue
-
+            # Build path of seu info log
+            sim_info_path = os.path.join(
+                os.getcwd(), run_info.data.directory, run, run_info.data.seu_info
+            )
+            # Build path of simulation log
             path = os.path.join(
                 os.getcwd(), run_info.data.directory, run, run_info.data.seu
             )
             log_dict, found_reg, failed_read = cls._read_single_seu_log(
-                run_info, path, info_to_find
+                run_info, path, sim_info_path, info_to_find
             )
 
             n_failed_reads += failed_read
@@ -178,7 +182,7 @@ class DataParser:
 
     @classmethod
     def _read_single_seu_log(
-        cls, run_info: RunInfo, path: str, info_to_find: List[str]
+        cls, run_info: RunInfo, path: str, sim_info_path: str, info_to_find: List[str]
     ) -> Tuple[Dict[str, str], bool, int]:
         """
         Parses a single seu_log.
@@ -189,7 +193,8 @@ class DataParser:
 
         :param run_info: Configuration object
         :type run_info: RunInfo
-        :param path: Path for the individual run
+        :param path: Path for simulation log of individual run, e.g. "log.txt"
+        :param path: Path for seu info of a run, e.g. "fault_information_info.txt"
         :type path: str
         :param info_to_find: A list containing what information should be found by the
         parser.
@@ -202,27 +207,40 @@ class DataParser:
         unfound_info = info_to_find.copy()
 
         try:
-            with open(path, "r") as f:
+            with open(path, "r") as f, open(sim_info_path, "r") as f_seu:
                 lines = f.readlines()
+                lines_seu = f_seu.readlines()
         except UnicodeDecodeError as e:
             if run_info.debug.error_utf_parsing:
-                cp.print_debug(f"  Could not read {path}")
+                cp.print_debug(f"  Unicode error {path} or {sim_info_path}!")
                 cp.print_debug("  " + str(e))
-            return None, False, 1
+                cp.print_debug("   Rereading with errors='replace'")
+            with open(path, "r", errors='replace') as f, open(sim_info_path, "r", errors='replace') as f_seu:
+                lines = f.readlines()
+                lines_seu = f_seu.readlines()
 
         for info in info_to_find:
             found_info = False
-            if hasattr(run_info.seu_metadata, info):
+            if hasattr(run_info.seu_metadata, info) and (info != "uvm_seed"):
                 match_pattern = getattr(run_info.seu_metadata, info)
+                for line in lines_seu:
+                    if match_pattern in line:
+                        seu_log_dict[info] = line.split(match_pattern)[1].strip()
+                        unfound_info.remove(info)
+                        found_info = True
+                        break
             else:
-                match_pattern = getattr(run_info.comparison_data, info)
-
-            for line in lines:
-                if match_pattern in line:
-                    seu_log_dict[info] = line.split(match_pattern)[1].strip()
-                    unfound_info.remove(info)
-                    found_info = True
-                    break
+                # TODO workaroud: uvm_seed is reported in sim log by seu injector               
+                if (info == "uvm_seed"):
+                    match_pattern = getattr(run_info.seu_metadata, info)
+                else:
+                    match_pattern = getattr(run_info.comparison_data, info)
+                for line in lines:
+                    if match_pattern in line:
+                        seu_log_dict[info] = line.split(match_pattern)[1].strip()
+                        unfound_info.remove(info)
+                        found_info = True
+                        break
 
             if not found_info:
                 seu_log_dict[info] = np.nan

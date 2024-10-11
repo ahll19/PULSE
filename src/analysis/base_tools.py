@@ -237,7 +237,11 @@ class BaseTools:
         std = ec_onehot.std()
         z = stats.norm.ppf(1 - (1 - confidence) / 2)
         ci = z * std / np.sqrt(n)
+        
+        ci_stats = stats.norm.interval(confidence, loc=rates, scale=std/np.sqrt(n))
+        print(ci_stats[0]-ci_stats[1])
 
+      
         if not visualize:
             return ci * 2, std
 
@@ -309,3 +313,58 @@ class BaseTools:
         fig.suptitle(r"Number of expected re-samples given $M$ runs")
 
         return res, fig
+
+    @classmethod
+    def register_error_props(
+        cls, data_interface: DataInterface, node_list: [Node], add_vals: bool = False
+    ) -> pd.DataFrame:
+        """
+        A method that takes a list of nodes and returns a dataframe with the proportion of
+        errors for each node. If being passed all the leaf nodes, i.e. the injected registers,
+        this can be used to discover the most sensitive registers in the design.
+        """ 
+        
+        df_vals = cls.register_error_vals(data_interface, node_list)
+
+        totals = df_vals.sum(axis=1)
+        df = df_vals.div(totals, axis=0)
+
+        if add_vals: 
+            df = pd.concat([df, df_vals], axis=1)
+        
+        return df
+
+    @classmethod
+    def register_error_vals(
+        cls, data_interface: DataInterface, node_list: [Node], prop: bool = False, ci: bool = False
+    ) -> pd.DataFrame | Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        A method that takes a list of nodes and returns a dataframe with the total values of  
+        each error outcome for each passed node. 
+        """ 
+        
+        nodes: Dict[str, Node] = {node.soc_path: node for node in node_list}
+
+        error_classes = {
+            name: cls.error_classification(data_interface, child_node, False)
+            for name, child_node in nodes.items()
+        }
+
+        error_counts = {
+            name: error_class.value_counts(normalize=prop)
+            for name, error_class in error_classes.items()
+        }
+        
+        df = pd.DataFrame(error_counts).fillna(0).T
+        
+        if ci:
+            ci_vals = {
+                name: cls.error_classification_confidence(data_interface, child_node, confidence=0.99)[0]
+                for name, child_node in nodes.items()
+            } 
+            
+            df_ci = pd.DataFrame(ci_vals).fillna(0).T
+            df_ci = df_ci/2  
+            return df, df_ci
+
+        return df

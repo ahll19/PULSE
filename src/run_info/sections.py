@@ -6,6 +6,7 @@ class Data:
     directory: str = None
     golden: str = None
     seu: str = None
+    seu_info: str = None
     vpi: str = None
     timeout: int = None
     max_ram_usage: int = None
@@ -31,7 +32,8 @@ class Data:
 
         self.directory = str(config["DATA"]["directory"])
         self.golden = str(config["DATA"]["golden"])
-        self.seu = str(config["DATA"]["seu"])
+        self.seu = str(config["DATA"]["sim_log"])
+        self.seu_info = str(config["DATA"]["seu_info"])
         self.vpi = str(config["DATA"]["vpi"])
         self.timeout = int(config["DATA"]["timeout"])
         self.read_optional = bool(int(config["DATA"]["read_optional"]))

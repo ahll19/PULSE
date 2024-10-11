@@ -2,6 +2,7 @@ from typing import List, Tuple, Union
 import os
 
 from anytree import findall as findall_nodes
+from anytree import RenderTree, AsciiStyle, PreOrderIter 
 import pandas as pd
 
 from .run_info.run_info import RunInfo
@@ -163,10 +164,35 @@ class DataInterface:
 
         return runs
 
+    def append_seu_log(self, append_data: SeuLog, append_non_register_runs: List[str]):
+        """
+        This method can append the new data to existing data which might have been generated using a 
+        different simulation formats. This method is useful when you have multiple simulations runs 
+        for the same DUT, but the simulator output has been changed.
+
+        :param append_data: Data to append. Hast to be parsed by DataParser
+        :param append_non_register_runs: List of runs where no register entry was parsed
+        """
+        self.seu_log = pd.concat([self.seu_log, append_data])
+        self.non_register_runs += append_non_register_runs
+
+        cp.print_header(f"Appending SeuLog data.")
+
+    def filter_seu_log(self, filter = r'\[31\]'):
+        """
+        Filter out the data that contains the filter string
+        :param filter: The string to filter out. Default filters out the zero GPR
+        """
+        cp.print_header(f"Filtering out data that contains '{filter}'")
+        size_before = len(self.seu_log)
+        self.seu_log = self.seu_log[self.seu_log['register'].str.contains(filter) == False]
+        size_after = len(self.seu_log)
+        cp.print_debug(f"Filtered out {size_before - size_after} entries")
+         
     def _generate_register_tree(self, run_info: RunInfo) -> None:
         """
         Uses the VPI entry in the config file (*.ini) to generate the register tree.
-        This tree represents the SoC hiearchy
+        This tree represents the SoC hierarchy
 
         :param run_info: Configuration object
         :type run_info: RunInfo
