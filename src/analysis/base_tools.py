@@ -237,7 +237,11 @@ class BaseTools:
         std = ec_onehot.std()
         z = stats.norm.ppf(1 - (1 - confidence) / 2)
         ci = z * std / np.sqrt(n)
+        
+        ci_stats = stats.norm.interval(confidence, loc=rates, scale=std/np.sqrt(n))
+        print(ci_stats[0]-ci_stats[1])
 
+      
         if not visualize:
             return ci * 2, std
 
@@ -326,14 +330,14 @@ class BaseTools:
         df = df_vals.div(totals, axis=0)
 
         if add_vals: 
-            return df.concat(df_vals)
-        else:
-            return df
+            df = pd.concat([df, df_vals], axis=1)
+        
+        return df
 
     @classmethod
     def register_error_vals(
-        cls, data_interface: DataInterface, node_list: [Node]
-    ) -> pd.DataFrame:
+        cls, data_interface: DataInterface, node_list: [Node], prop: bool = False, ci: bool = False
+    ) -> pd.DataFrame | Tuple[pd.DataFrame, pd.DataFrame]:
         """
         A method that takes a list of nodes and returns a dataframe with the total values of  
         each error outcome for each passed node. 
@@ -347,9 +351,20 @@ class BaseTools:
         }
 
         error_counts = {
-            name: error_class.value_counts()
+            name: error_class.value_counts(normalize=prop)
             for name, error_class in error_classes.items()
         }
-
+        
         df = pd.DataFrame(error_counts).fillna(0).T
+        
+        if ci:
+            ci_vals = {
+                name: cls.error_classification_confidence(data_interface, child_node, confidence=0.99)[0]
+                for name, child_node in nodes.items()
+            } 
+            
+            df_ci = pd.DataFrame(ci_vals).fillna(0).T
+            df_ci = df_ci/2  
+            return df, df_ci
+
         return df

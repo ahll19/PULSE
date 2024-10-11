@@ -101,7 +101,7 @@ class IbexCoremarkTools(BaseTools):
         leaf_nodes = [node for node in PreOrderIter(start_node) if not node.children]
 
         # calculate error proportions
-        node_err_props = BaseTools.register_error_props(data_interface, leaf_nodes) 
+        node_err_props = BaseTools.register_error_vals(data_interface, leaf_nodes, prop=True) 
         
         if not visualize:
             return node_error_props
